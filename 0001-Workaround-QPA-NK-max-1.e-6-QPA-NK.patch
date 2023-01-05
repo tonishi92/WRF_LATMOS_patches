@@ -1,0 +1,75 @@
+From dbd45ac8c9604745bbb8e064acc7bc1aca59b4bd Mon Sep 17 00:00:00 2001
+From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
+Date: Thu, 12 May 2022 12:27:00 +0200
+Subject: [PATCH 01/70] Workaround QPA(NK) = max(1.e-6,QPA(NK))
+
+Keep p and th inside the bound
+IPTB and ITHTB are kept within [1,220] and [1,250], respectively
+
+File: phys/module_cu_kfcup.F
+---
+ phys/module_cu_kfcup.F | 39 +++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 39 insertions(+)
+
+diff --git a/phys/module_cu_kfcup.F b/phys/module_cu_kfcup.F
+index 31b5f7d..26fedc5 100644
+--- a/phys/module_cu_kfcup.F
++++ b/phys/module_cu_kfcup.F
+@@ -2922,6 +2922,34 @@ iter:     DO NCOUNT=1,10
+                        DTIME*EMSD(NK)
+               QPA(NK)=QPA(NK)+(QFXIN(NK)+UDR(NK)*QDT(NK)+DDR(NK)*QD(NK)-    &
+                       QFXOUT(NK)-(UER(NK)-DER(NK))*Q0(NK))*DTIME*EMSD(NK)
++!TO2
++              if(NK.eq.1) then
++                !print *, ''
++                !print *,'QPA(NK)=QPA(NK)+(QFXIN(NK)+UDR(NK)*QDT(NK)+DDR(NK)*QD(NK)- '
++                !print *,'        QFXOUT(NK)-(UER(NK)-DER(NK))*Q0(NK))*DTIME*EMSD(NK)'
++                !print *, 'QPA(NK) after            = ',QPA(NK)                 
++                !print *, 'QFXIN(NK)                *(DTIME*EMSD(NK))=',  QFXIN(NK)*(DTIME*EMSD(NK))
++                !print *, 'UDR(NK)*QDT(NK)          *(DTIME*EMSD(NK))=',  UDR(NK)*QDT(NK)*(DTIME*EMSD(NK))
++                !print *, 'UDR(NK)                  *(DTIME*EMSD(NK))=',  UDR(NK)        *(DTIME*EMSD(NK))
++                !print *, '        QDT(NK)          *(DTIME*EMSD(NK))=',          QDT(NK)*(DTIME*EMSD(NK))
++                !print *, 'DDR(NK)*QD(NK)           *(DTIME*EMSD(NK))=',  DDR(NK)*QD(NK)*(DTIME*EMSD(NK))
++                !print *, 'DDR(NK)                  *(DTIME*EMSD(NK))=',  DDR(NK)       *(DTIME*EMSD(NK))
++                !print *, '        QD(NK)           *(DTIME*EMSD(NK))=',          QD(NK)*(DTIME*EMSD(NK))
++                !print *, '-QFXOUT(NK)              *(DTIME*EMSD(NK))=',  -QFXOUT(NK)*(DTIME*EMSD(NK))
++                !print *, '-(UER(NK)-DER(NK))*Q0(NK)*(DTIME*EMSD(NK))=',  -(UER(NK)-DER(NK))*Q0(NK)*(DTIME*EMSD(NK))
++                !print *, '-(UER(NK)-DER(NK))       *(DTIME*EMSD(NK))=',  -(UER(NK)-DER(NK))       *(DTIME*EMSD(NK))
++                !print *, '                   Q0(NK)*(DTIME*EMSD(NK))=',                     Q0(NK)*(DTIME*EMSD(NK))
++                !print *, '-(UER(NK)        )*Q0(NK)*(DTIME*EMSD(NK))=',  -(UER(NK)        )*Q0(NK)*(DTIME*EMSD(NK))
++                !print *, '-(       -DER(NK))*Q0(NK)*(DTIME*EMSD(NK))=',  -(       -DER(NK))*Q0(NK)*(DTIME*EMSD(NK))
++                !print *, '                           DTIME*EMSD(NK) =',  DTIME*EMSD(NK)
++                !print *, UER(NK),-DER(NK),Q0(NK)
++                !print *, ''
++                if(QPA(NK).LT.1.e-6) THEN
++                  print *, 'QPA(NK).LT.1.e-6' 
++                  QPA(NK) = max(1.e-6,QPA(NK))
++                endif
++              endif
++!TO2
+             ENDDO   
+           ENDDO   
+           DO NK=1,LTOP
+@@ -3711,8 +3739,19 @@ iter:     DO NCOUNT=1,10
+       ithtb=int(tth)+1
+        IF(IPTB.GE.220 .OR. IPTB.LE.1 .OR. ITHTB.GE.250 .OR. ITHTB.LE.1)THEN
+          write(98,*)'**** OUT OF BOUNDS *********'
++         write(98,*) IPTB, ITHTB, p, plutop, thes, bth
+ !        flush(98)
+        ENDIF
++!TO2
++      IF(IPTB.GE.220 .OR. IPTB.LE.1 .OR. ITHTB.GE.250 .OR. ITHTB.LE.1)THEN
++        write(*,*) '**** OUT OF BOUNDS ********** IPTB and ITHTB'
++        IPTB = max(1,iptb)
++        IPTB = min(219,iptb)
++        ithtb = max(1,ithtb)
++        ithtb = min(249,ithtb)
++      ENDIF
++!TO2
++      
+ !
+       t00=ttab(ithtb  ,iptb  )
+       t10=ttab(ithtb+1,iptb  )
+-- 
+2.31.1
+

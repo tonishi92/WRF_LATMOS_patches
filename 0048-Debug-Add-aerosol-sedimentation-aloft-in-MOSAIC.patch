@@ -1,0 +1,36 @@
+From 09418d3bd5c325646aba42fdc1b093da9e660cdd Mon Sep 17 00:00:00 2001
+From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
+Date: Thu, 8 Dec 2022 17:32:36 +0100
+Subject: [PATCH 48/70] (Debug) Add aerosol sedimentation aloft in MOSAIC
+
+TYPE : Debug
+
+module_mosaic_settling.o
+is added in chem/depend.chem
+
+Description:
+   This debug has no influence on anything as it has no dependency.
+   It is done just for a consistency
+
+List of modified files:
+   * chem/depend.chem
+---
+ chem/depend.chem | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/chem/depend.chem b/chem/depend.chem
+index 001030e..049a2a8 100644
+--- a/chem/depend.chem
++++ b/chem/depend.chem
+@@ -67,6 +67,8 @@ module_gocart_so2so4.o:
+ 
+ module_vash_settling.o:
+ 
++module_mosaic_settling.o:
++
+ module_gocart_settling.o: ../phys/module_data_gocart_dust.o module_data_gocart_seas.o
+ 
+ module_gocart_aerosols.o: module_data_gocartchem.o
+-- 
+2.31.1
+

@@ -1,0 +1,255 @@
+From 8284a548262f1bb52e729ecb1cf87b9d07e0c3a9 Mon Sep 17 00:00:00 2001
+From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
+Date: Wed, 17 Oct 2018 16:56:35 +0200
+Subject: [PATCH 08/70] KF-CuP/radiation and KF-CuP/cloud interactions
+
+Adds cldfra_dp and cldfra_sh outputs from KF-CuP, the cloud fractions
+associated with deep and shalow convection. Calculations are based on
+how cldfra_dp and cldfra_sh are already calculated in kfeta since
+WRF3.6.
+cldfra_dp and cldfra_sh are already passed from the cumulus driver
+(from e.g., KFETA) to the radiation driver, where they are added to the
+total cloud fraction, CLDFRA, and used in the radiation calculations.
+This commit adds a condition in phys/module_physics_init.F allowing this
+to happen for KF-CuP also, when icloud=1 is selected in the namelist.
+---
+ phys/module_cu_kfcup.F       | 86 ++++++++++++++++++++++++++++++++++++
+ phys/module_cumulus_driver.F |  3 ++
+ phys/module_physics_init.F   |  3 +-
+ 3 files changed, 91 insertions(+), 1 deletion(-)
+
+diff --git a/phys/module_cu_kfcup.F b/phys/module_cu_kfcup.F
+index 26fedc5..96c82f2 100644
+--- a/phys/module_cu_kfcup.F
++++ b/phys/module_cu_kfcup.F
+@@ -55,6 +55,8 @@ MODULE module_cu_kfcup
+ 
+    IMPLICIT NONE
+ 
++!LMarelle: add cloud fraction based on ckay's kfeta updates
++!
+ !--------------------------------------------------------------------
+ ! Lookup table variables:
+       INTEGER, PARAMETER, PRIVATE :: KFNT=250,KFNP=220
+@@ -135,6 +137,9 @@ CONTAINS
+              ,F_QV    ,F_QC    ,F_QR    ,F_QI    ,F_QS       &
+              ,RTHCUTEN,RQVCUTEN,RQCCUTEN,RQRCUTEN            &
+              ,RQICUTEN,RQSCUTEN                              &
++!ckay
++             ,cldfra_dp_KF,cldfra_sh_KF                      &
++             ,qc_KF,qi_KF                                    &
+                                                              )
+ !
+    USE module_state_description, only:  num_chem
+@@ -295,6 +300,14 @@ CONTAINS
+                                                   ,F_QI      &
+                                                   ,F_QS
+ 
++!ckay
++   REAL,  DIMENSION( ims:ime , kms:kme , jms:jme )         , &
++          INTENT(INOUT) ::                                   &
++                                               cldfra_dp_KF, &
++                                               cldfra_sh_KF, &
++                                                      qc_KF, &
++                                                      qi_KF
++
+ 
+ ! LOCAL VARS
+ 
+@@ -527,6 +540,11 @@ main_test_on_nca: &  ! rce 11-may-2012
+                DQRDT(k)=0.
+                DQSDT(k)=0.
+                DTDT(k)=0.
++!ckay
++               cldfra_dp_KF(I,k,J)=0.
++               cldfra_sh_KF(I,k,J)=0.
++               qc_KF(I,k,J)=0.
++               qi_KF(I,k,J)=0.
+             ENDDO
+             RAINCV(I,J)=0.
+             CUTOP(I,J)=KTS
+@@ -730,6 +748,9 @@ PERTLOOPS:     do jpert = 1,numBins
+                        ids,ide, jds,jde, kds,kde,           &
+                        ims,ime, jms,jme, kms,kme,           &
+                        its,ite, jts,jte, kts,kte,           &
++!ckay
++                       cldfra_dp_KF,cldfra_sh_KF,           &
++                       qc_KF,qi_KF,                         &
+                        idiagee, updfra, wulcl, wup,         &
+                        umfout, uerout, udrout,              & ! rce 11-may-2012
+                        dmfout, derout, ddrout,              & !         "
+@@ -1146,6 +1167,9 @@ main_test_on_deep_shall_freq: &  ! rce 11-may-2012
+                     ids,ide, jds,jde, kds,kde,           &
+                     ims,ime, jms,jme, kms,kme,           &
+                     its,ite, jts,jte, kts,kte,           &
++!ckay
++                    cldfra_dp_KF,cldfra_sh_KF,           &
++                    qc_KF,qi_KF,                         &
+                     idiagee, updfra, wulcl, wup,         &
+                     umfout, uerout, udrout,              & ! rce 11-may-2012
+                     dmfout, derout, ddrout,              & !         "
+@@ -1266,6 +1290,9 @@ main_test_on_deep_shall_freq: &  ! rce 11-may-2012
+                       ids,ide, jds,jde, kds,kde,           &
+                       ims,ime, jms,jme, kms,kme,           &
+                       its,ite, jts,jte, kts,kte,           & ! rce 11-may-2012
++!ckay
++                      cldfra_dp_KF,cldfra_sh_KF,           &
++                      qc_KF,qi_KF,                         &
+                       idiagee, updfra, wulcl, wup,         & !         "
+                       umfout, uerout, udrout,              & !         "
+                       dmfout, derout, ddrout,              & !         "
+@@ -1332,6 +1359,12 @@ main_test_on_deep_shall_freq: &  ! rce 11-may-2012
+       REAL,    DIMENSION( ims:ime , jms:jme ),             &
+             INTENT(INOUT) ::                          NCA
+ 
++!ckay
++      REAL, DIMENSION( ims:ime , kms:kme , jms:jme ),      &
++            INTENT(INOUT) ::                 cldfra_dp_KF, &
++                                             cldfra_sh_KF, &
++                                                    qc_KF, &
++                                                    qi_KF
+       REAL, DIMENSION( ims:ime , jms:jme ),                &
+             INTENT(INOUT) ::                       RAINCV   !LD, add PRATEC 21-Apr-2011
+ 
+@@ -1459,6 +1492,8 @@ main_test_on_deep_shall_freq: &  ! rce 11-may-2012
+       INTEGER :: INDLU,NU,NUCHM,NNN,KLFS
+    REAL    :: CHMIN,PM15,CHMAX,DTRH,RAD,DPPP
+    REAL    :: TVDIFF,DTTOT,ABSOMG,ABSOMGTC,FRDP
++!ckay
++   REAL    :: xcldfra,UMF_new
+ 
+       INTEGER :: KX,K,KL
+ !
+@@ -2176,6 +2211,11 @@ updraft:    DO NK=K,KL-1
+             ELSEIF(TLCL.LT.273.)THEN
+               CHMIN = 2.E3
+             ENDIF
++!ckay
++            DO NK=K,LTOP
++              qc_KF(I,NK,J)=QLIQ(NK)
++              qi_KF(I,NK,J)=QICE(NK)
++            END DO
+ 
+ !     
+ !...If cloud top height is less than the specified minimum for deep 
+@@ -2204,15 +2244,28 @@ updraft:    DO NK=K,KL-1
+                 DETIC(NK)=0.
+                 PPTLIQ(NK)=0.
+                 PPTICE(NK)=0.
++!ckay
++                cldfra_dp_KF(I,NK,J)=0.
++                cldfra_sh_KF(I,NK,J)=0.
++                qc_KF(I,NK,J)=0.
++                qi_KF(I,NK,J)=0.
+               ENDDO
+ !        
+             ELSEIF(CLDHGT(LC).GT.CHMIN .and. ABE.GT.1)THEN      ! Deep Convection allowed
+               ISHALL=0
++!ckay
++              DO NK=K,LTOP
++                cldfra_sh_KF(I,NK,J)=0.
++              ENDDO
+               EXIT usl
+             ELSE
+ !
+ !...TO DISALLOW SHALLOW CONVECTION, COMMENT OUT NEXT LINE !!!!!!!!
+               ISHALL = 1
++!ckay
++              DO NK=K,LTOP
++                cldfra_dp_KF(I,NK,J)=0.
++              ENDDO
+               IF(NU.EQ.NUCHM)THEN
+                 EXIT usl               ! Shallow Convection from this layer
+               ELSE
+@@ -2225,6 +2278,11 @@ updraft:    DO NK=K,KL-1
+                   DETIC(NK)=0.
+                   PPTLIQ(NK)=0.
+                   PPTICE(NK)=0.
++!ckay
++                  cldfra_dp_KF(I,NK,J)=0.
++                  cldfra_sh_KF(I,NK,J)=0.
++                  qc_KF(I,NK,J)=0.
++                  qi_KF(I,NK,J)=0.
+                 ENDDO
+               ENDIF
+             ENDIF
+@@ -2313,6 +2371,11 @@ updraft:    DO NK=K,KL-1
+         UMF(NK)=0.
+         WU(NK)=0.
+         UER(NK)=0.
++!ckay
++        cldfra_dp_KF(I,NK,J)=0.
++        cldfra_sh_KF(I,NK,J)=0.
++        qc_KF(I,NK,J)=0.
++        qi_KF(I,NK,J)=0.
+       ENDIF
+       UDR(NK)=0.
+       QDT(NK)=0.
+@@ -2352,6 +2415,11 @@ updraft:    DO NK=K,KL-1
+           TU(NK)=0.
+           QU(NK)=0.
+           WU(NK)=0.
++!ckay
++          cldfra_dp_KF(I,NK,J)=0.
++          cldfra_sh_KF(I,NK,J)=0.
++          qc_KF(I,NK,J)=0.
++          qi_KF(I,NK,J)=0.
+         ENDIF
+         THTA0(NK)=0.
+         THTAU(NK)=0.
+@@ -3213,6 +3281,24 @@ iter:     DO NCOUNT=1,10
+ !     
+           ENDIF
+         ENDDO iter
++!ckay
++! get the cloud fraction for layer NK+1=NK1
++        IF(ISHALL.EQ.1) THEN
++          DO NK=KLCL-1, LTOP1
++            UMF_new = UMF(NK)/DXSQ
++            xcldfra = 0.07*alog(1.+(500.*UMF_new))
++            xcldfra = amax1(0.01,xcldfra)
++            cldfra_sh_KF(I,NK,J) = amin1(0.2,xcldfra)
++          ENDDO
++        ELSE 
++          DO NK=KLCL-1, LTOP1
++            UMF_new = UMF(NK)/DXSQ
++            xcldfra = 0.14*alog(1.+(500.*UMF_new))
++            xcldfra = amax1(0.01,xcldfra)
++            cldfra_dp_KF(I,NK,J) = amin1(0.6,xcldfra)
++          ENDDO
++        ENDIF
++
+ !     
+ !...COMPUTE HYDROMETEOR TENDENCIES AS IS DONE FOR T, QV...
+ !     
+diff --git a/phys/module_cumulus_driver.F b/phys/module_cumulus_driver.F
+index c6d3b1f..ea56aff 100644
+--- a/phys/module_cumulus_driver.F
++++ b/phys/module_cumulus_driver.F
+@@ -1572,6 +1572,9 @@ CONTAINS
+              ,RQSCUTEN=rqscuten                                 &
+              ,F_QV=f_qv,F_QC=f_qc,F_QR=f_qr                     &
+              ,F_QI=f_qi,F_QS=f_qs                               &
++             ,CLDFRA_DP_KF=cldfra_dp                            & ! ckay for sub-grid cloud
++             ,CLDFRA_SH_KF=cldfra_sh                            &
++             ,QC_KF=QC_CU,QI_KF=QI_CU                           &
+              )
+         
+         
+diff --git a/phys/module_physics_init.F b/phys/module_physics_init.F
+index 8725908..4c9b954 100644
+--- a/phys/module_physics_init.F
++++ b/phys/module_physics_init.F
+@@ -1120,7 +1120,8 @@ CHARACTER(LEN=8) :: name
+ 
+    icloud_cu = 0
+    IF ( config_flags%cu_rad_feedback ) THEN
+-      IF ( config_flags%cu_physics == kfetascheme ) THEN
++      IF ( config_flags%cu_physics == kfetascheme .OR. &
++         config_flags%cu_physics == KFCUPSCHEME ) THEN
+          icloud_cu = 2
+       ELSE IF ( config_flags%cu_physics == gfscheme .OR. &
+                 config_flags%cu_physics == g3scheme .OR. &
+-- 
+2.31.1
+

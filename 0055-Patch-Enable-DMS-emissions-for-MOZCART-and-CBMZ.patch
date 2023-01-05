@@ -1,0 +1,113 @@
+From ccccf04b2e91c7e16c94f65f820ccca2bb9c4b3c Mon Sep 17 00:00:00 2001
+From: tonishi92 <tatsuo.onishi@gmail.com>
+Date: Mon, 12 Dec 2022 14:49:50 +0100
+Subject: [PATCH 55/70] (Patch) Enable DMS emissions for MOZCART and CBMZ
+
+TYPE : Patch application
+
+Description:
+  See the description below in the original patch
+
+List of modified files:
+  * Registry/registry.chem
+  * chem/chemics_init.F
+
+===== Original Patch ========================================================
+In order to avoid a confusion, '=== ' is placed at the beginning of each line
+
+=== From 5d79a2928f2d3cf9c4307a67c61dd8f776f69793 Mon Sep 17 00:00:00 2001
+=== From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
+=== Date: Sat, 23 Jul 2022 11:46:51 +0200
+=== Subject: [PATCH 24/36] Enable DMS emissions for MOZCART and CBMZ
+===
+=== Enable Nightingale DMS emissions for MOZCART and CBMZ, by adding
+=== e_dms_oc to the emission packages 4 and 8 in the registry and adding
+=== checks in chemics_init.
+=== ---
+===  Registry/registry.chem | 4 ++--
+===  chem/chemics_init.F    | 9 ++++++---
+===  2 files changed, 8 insertions(+), 5 deletions(-)
+===
+=== diff --git a/Registry/registry.chem b/Registry/registry.chem
+=== index 45896f74..d75a2492 100644
+=== --- a/Registry/registry.chem
+=== +++ b/Registry/registry.chem
+=== @@ -4083,11 +4083,11 @@ package   cri_mosaic_4bin_aq_kpp  chem_opt==611          -             chem:dms,
+===  #
+===  package   eradm           emiss_opt==2                   -             emis_ant:e_iso,e_so2,e_no,e_co,e_eth,e_hc3,e_hc5,e_hc8,e_xyl,e_ol2,e_olt,e_oli,e_tol,e_csl,e_hcho,e_ald,e_ket,e_ora2,e_nh3
+===  package   eradmsorg       emiss_opt==3                   -             emis_ant:e_iso,e_so2,e_no,e_no2,e_co,e_ch4,e_eth,e_hc3,e_hc5,e_hc8,e_xyl,e_ol2,e_olt,e_oli,e_tol,e_csl,e_hcho,e_ald,e_ket,e_ora2,e_nh3,e_pm25i,e_pm25j,e_pm_10,e_eci,e_ecj,e_orgi,e_orgj,e_so4i,e_so4j,e_no3i,e_no3j,e_naaj,e_naai,e_orgi_a,e_orgj_a,e_orgi_bb,e_orgj_bb,e_hcl,e_cli,e_clj,e_ch3cl
+=== -package   ecbmz_mosaic    emiss_opt==4                   -             emis_ant:e_iso,e_so2,e_no,e_co,e_eth,e_hc3,e_hc5,e_hc8,e_xyl,e_ol2,e_olt,e_oli,e_tol,e_csl,e_hcho,e_ald,e_ket,e_ora2,e_nh3,e_no2,e_ch3oh,e_c2h5oh,e_pm25i,e_pm25j,e_eci,e_ecj,e_orgi,e_orgj,e_so4i,e_so4j,e_no3i,e_no3j,e_so4c,e_no3c,e_orgc,e_ecc
+=== +package   ecbmz_mosaic    emiss_opt==4                   -             emis_ant:e_iso,e_so2,e_no,e_co,e_eth,e_hc3,e_hc5,e_hc8,e_xyl,e_ol2,e_olt,e_oli,e_tol,e_csl,e_hcho,e_ald,e_ket,e_ora2,e_nh3,e_no2,e_ch3oh,e_c2h5oh,e_pm25i,e_pm25j,e_eci,e_ecj,e_orgi,e_orgj,e_so4i,e_so4j,e_no3i,e_no3j,e_so4c,e_no3c,e_dms_oc,e_orgc,e_ecc
+===  package   ecptec          emiss_opt==5                   -             emis_ant:e_iso,e_so2,e_no,e_no2,e_co,e_eth,e_hc3,e_hc5,e_hc8,e_xyl,e_ol2,e_olt,e_oli,e_tol,e_csl,e_hcho,e_ald,e_ket,e_ora2,e_nh3,e_pm_25,e_pm_10,e_oc,e_sulf,e_bc
+===  package   gocart_ecptec   emiss_opt==6                   -             emis_ant:e_so2,e_sulf,e_bc,e_oc,e_pm_25,e_pm_10
+===  package   mozem           emiss_opt==7                   -             emis_ant:e_co,e_no,e_no2,e_bigalk,e_bigene,e_c2h4,e_c2h5oh,e_c2h6,e_c3h6,e_c3h8,e_ch2o,e_ch3cho,e_ch3coch3,e_ch3oh,e_mek,e_so2,e_toluene,e_nh3,e_isop,e_c10h16,e_sulf
+=== -package   mozcem          emiss_opt==8                   -             emis_ant:e_co,e_no,e_no2,e_bigalk,e_bigene,e_c2h4,e_c2h5oh,e_c2h6,e_c3h6,e_c3h8,e_ch2o,e_ch3cho,e_ch3coch3,e_ch3oh,e_mek,e_so2,e_toluene,e_nh3,e_isop,e_c10h16,e_pm_10,e_pm_25,e_bc,e_oc,e_sulf
+=== +package   mozcem          emiss_opt==8                   -             emis_ant:e_co,e_no,e_no2,e_bigalk,e_bigene,e_c2h4,e_c2h5oh,e_c2h6,e_c3h6,e_c3h8,e_ch2o,e_ch3cho,e_ch3coch3,e_ch3oh,e_mek,e_so2,e_toluene,e_nh3,e_isop,e_c10h16,e_dms_oc,e_pm_10,e_pm_25,e_bc,e_oc,e_sulf
+===  package   cammam          emiss_opt==9                   -             emis_ant:e_iso,e_so2,e_no,e_co,e_eth,e_hc3,e_hc5,e_hc8,e_xyl,e_ol2,e_olt,e_oli,e_tol,e_csl,e_hcho,e_ald,e_ket,e_ora2,e_nh3,e_dms,e_ecj,e_orgj,e_so4i,e_so4j,e_soag_bigene,e_soag_isoprene,e_soag_terpene,e_soag_toluene,e_dust_a1,e_dust_a3,e_ncl_a1,e_ncl_a2,e_ncl_a3,e_orgj_num,e_ecj_num,e_so4j_num,e_so4i_num
+===
+===  package   mozmem           emiss_opt==10                   -             emis_ant:e_co,e_no,e_no2,e_bigalk,e_bigene,e_c2h4,e_c2h5oh,e_c2h6,e_c3h6,e_c3h8,e_ch2o,e_ch3cho,e_ch3coch3,e_ch3oh,e_mek,e_so2,e_toluene,e_benzene,e_xylene,e_nh3,e_isop,e_apin,e_pm25i,e_pm25j,e_eci,e_ecj,e_orgi,e_orgj,e_so4i,e_so4j,e_no3i,e_no3j,e_nh4i,e_nh4j,e_nai,e_naj,e_cli,e_clj,e_co_a,e_orgi_a,e_orgj_a,e_co_bb,e_orgi_bb,e_orgj_bb,e_pm_10,e_c2h2,e_gly,e_sulf,e_macr,e_mgly,e_mvk,e_hcooh,e_hono,e_dms_oc
+=== diff --git a/chem/chemics_init.F b/chem/chemics_init.F
+=== index 702641e8..88250d83 100755
+=== --- a/chem/chemics_init.F
+=== +++ b/chem/chemics_init.F
+=== @@ -436,10 +436,13 @@ call wrf_message("**************************************************************
+===     endif
+===
+===     !LMarelle: Add a condition on emiss_opt for Nightingale DMS emissions
+=== -   if ( config_flags%dmsemis_opt == 2 .and. (config_flags%emiss_opt /= 13 &
+=== -        .and. config_flags%emiss_opt /= 10) ) then
+=== +   if ( config_flags%dmsemis_opt == 2 .and. &
+=== +        (config_flags%emiss_opt /= 4 &
+=== +         .and. config_flags%emiss_opt /= 8 &
+=== +         .and. config_flags%emiss_opt /= 10 &
+=== +         .and. config_flags%emiss_opt /= 13) ) then
+===        call wrf_error_fatal ('chemics_init: error, nightingale_dmsemis (dmsemis_opt = 2) &
+=== -                            requires e_dms_oc to be defined in emis_ant (emiss_opt = 13 or 10)')
+=== +                            requires e_dms_oc to be defined in emis_ant (emiss_opt = 4,8,10,13)')
+===     endif
+===
+===      IF ( config_flags%chem_opt == 0 .AND. config_flags%aer_ra_feedback .NE. 0 ) THEN
+=== --
+=== 2.31.1
+---
+ Registry/registry.chem | 2 +-
+ chem/chemics_init.F    | 9 ++++++---
+ 2 files changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/Registry/registry.chem b/Registry/registry.chem
+index ef3daf4..27876c3 100644
+--- a/Registry/registry.chem
++++ b/Registry/registry.chem
+@@ -4336,7 +4336,7 @@ package   ecbmz_mosaic    emiss_opt==4                   -             emis_ant:
+ package   ecptec          emiss_opt==5                   -             emis_ant:e_iso,e_so2,e_no,e_no2,e_co,e_eth,e_hc3,e_hc5,e_hc8,e_xyl,e_ol2,e_olt,e_oli,e_tol,e_csl,e_hcho,e_ald,e_ket,e_ora2,e_nh3,e_pm_25,e_pm_10,e_oc,e_sulf,e_bc
+ package   gocart_ecptec   emiss_opt==6                   -             emis_ant:e_so2,e_sulf,e_bc,e_oc,e_pm_25,e_pm_10
+ package   mozem           emiss_opt==7                   -             emis_ant:e_co,e_no,e_no2,e_bigalk,e_bigene,e_c2h4,e_c2h5oh,e_c2h6,e_c3h6,e_c3h8,e_ch2o,e_ch3cho,e_ch3coch3,e_ch3oh,e_mek,e_so2,e_toluene,e_nh3,e_isop,e_c10h16,e_sulf
+-package   mozcem          emiss_opt==8                   -             emis_ant:e_co,e_no,e_no2,e_bigalk,e_bigene,e_c2h4,e_c2h5oh,e_c2h6,e_c3h6,e_c3h8,e_ch2o,e_ch3cho,e_ch3coch3,e_ch3oh,e_mek,e_so2,e_toluene,e_nh3,e_isop,e_c10h16,e_pm_10,e_pm_25,e_bc,e_oc,e_sulf
++package   mozcem          emiss_opt==8                   -             emis_ant:e_co,e_no,e_no2,e_bigalk,e_bigene,e_c2h4,e_c2h5oh,e_c2h6,e_c3h6,e_c3h8,e_ch2o,e_ch3cho,e_ch3coch3,e_ch3oh,e_mek,e_so2,e_toluene,e_nh3,e_isop,e_c10h16,e_dms_oc,e_pm_10,e_pm_25,e_bc,e_oc,e_sulf
+ package   cammam          emiss_opt==9                   -             emis_ant:e_iso,e_so2,e_no,e_co,e_eth,e_hc3,e_hc5,e_hc8,e_xyl,e_ol2,e_olt,e_oli,e_tol,e_csl,e_hcho,e_ald,e_ket,e_ora2,e_nh3,e_dms,e_ecj,e_orgj,e_so4i,e_so4j,e_soag_bigene,e_soag_isoprene,e_soag_terpene,e_soag_toluene,e_dust_a1,e_dust_a3,e_ncl_a1,e_ncl_a2,e_ncl_a3,e_orgj_num,e_ecj_num,e_so4j_num,e_so4i_num
+ 
+ package   mozmem           emiss_opt==10                   -             emis_ant:e_co,e_no,e_no2,e_bigalk,e_bigene,e_c2h4,e_c2h5oh,e_c2h6,e_c3h6,e_c3h8,e_ch2o,e_ch3cho,e_ch3coch3,e_ch3oh,e_mek,e_so2,e_toluene,e_benzene,e_xylene,e_nh3,e_isop,e_apin,e_pm25i,e_pm25j,e_eci,e_ecj,e_orgi,e_orgj,e_so4i,e_so4j,e_no3i,e_no3j,e_nh4i,e_nh4j,e_nai,e_naj,e_cli,e_clj,e_co_a,e_orgi_a,e_orgj_a,e_co_bb,e_orgi_bb,e_orgj_bb,e_pm_10,e_c2h2,e_gly,e_sulf,e_macr,e_mgly,e_mvk,e_hcooh,e_hono,e_dms_oc
+diff --git a/chem/chemics_init.F b/chem/chemics_init.F
+index af92bc7..e5b2f89 100755
+--- a/chem/chemics_init.F
++++ b/chem/chemics_init.F
+@@ -490,10 +490,13 @@ call wrf_message("**************************************************************
+    endif
+ 
+    !LMarelle: Add a condition on emiss_opt for Nightingale DMS emissions
+-   if ( config_flags%dmsemis_opt == 2 .and. (config_flags%emiss_opt /= 13 &
+-        .and. config_flags%emiss_opt /= 10) ) then
++   if ( config_flags%dmsemis_opt == 2 .and. &
++        (config_flags%emiss_opt /= 4 &
++         .and. config_flags%emiss_opt /= 8 &
++         .and. config_flags%emiss_opt /= 10 &
++         .and. config_flags%emiss_opt /= 13) ) then
+       call wrf_error_fatal ('chemics_init: error, nightingale_dmsemis (dmsemis_opt = 2) &
+-                            requires e_dms_oc to be defined in emis_ant (emiss_opt = 13 or 10)')
++                            requires e_dms_oc to be defined in emis_ant (emiss_opt = 4,8,10,13)')
+    endif
+ 
+ !!! !lm Add this condition on emiss_opt for Nightingale DMS emissions
+-- 
+2.31.1
+

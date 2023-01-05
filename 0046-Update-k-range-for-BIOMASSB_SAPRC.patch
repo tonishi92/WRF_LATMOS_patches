@@ -1,0 +1,39 @@
+From bc50882a506f917e76350a1dd305cd823522a50a Mon Sep 17 00:00:00 2001
+From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
+Date: Thu, 24 Nov 2022 09:30:20 +0100
+Subject: [PATCH 46/70] (Update) k-range for BIOMASSB_SAPRC.
+
+TYPE : Update
+
+Description:
+       To be consistent with other input variables,
+       k-range is changed for biomass_burn_opt = BIOMASSB_SAPRC
+       From
+          do k=kts,kte
+       To
+          do k=kts,min(config_flags%kemit,kte-ksub)
+
+List of modified files:
+   * chem/emissions_driver.F
+---
+ chem/emissions_driver.F | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/chem/emissions_driver.F b/chem/emissions_driver.F
+index fd942c9..66c17ac 100644
+--- a/chem/emissions_driver.F
++++ b/chem/emissions_driver.F
+@@ -1483,7 +1483,9 @@ CONTAINS
+        if ( config_flags%biomass_burn_opt == BIOMASSB_SAPRC ) then
+          do j=jts,jte
+            do i=its,ite
+-             do k=kts,kte
++!to2             do k=kts,kte
++             do k=kts,min(config_flags%kemit,kte-ksub)
++!to2
+                ! Use OM/OC of 1.25 for fossil and OM:OC of 1.57 for biomass
+                ! O:C=0.06,H:C=1.8, N:C=0.02 for fossil : OM/OC=(16*0.06+12+14*0.02+12)/12=1.25
+                ! O:C=0.3 H:C=1.8, N:C=0.02 for biomass, OM/OC=1.57 for biomass
+-- 
+2.31.1
+

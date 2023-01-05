@@ -1,0 +1,402 @@
+From ba77ea44b4b0ce6431dcc8a539740c91d35ee861 Mon Sep 17 00:00:00 2001
+From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
+Date: Fri, 9 Dec 2022 13:00:31 +0100
+Subject: [PATCH 50/70] Patch application: Add a biomass burning emission
+ package for CBMZ
+
+The following patch on "Add a biomass burning emission package for CBMZ" is applied.
+A part of modifications was already applied.
+In this commit, missing updates are applied.
+For a complete description, see the original patch below
+
+Modified files in this commit:
+    :   Registry/registry.chem
+    :   chem/module_add_emiss_burn.F
+    :   chem/module_mosaic_addemiss.F
+    :   chem/module_plumerise1.F
+
+Files not modified in this commit but included in the original commit
+    :   chem/emissions_driver.F
+
+============ Original commit =============================================
+To avoid the confusion with this commit, I placed "=== " at the
+beginning of each line.
+
+===
+=== From 9ecdf8c8210bdd00bb88c2b3471d850b88b69c05 Mon Sep 17 00:00:00 2001
+=== From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
+=== Date: Wed, 1 Jun 2022 13:33:21 +0200
+=== Subject: [PATCH 18/36] Add a biomass burning emission package for CBMZ
+===
+=== Adds a biomass burning (BB) emission package for CBMZ mechanisms,
+=== BIOMASSB_CBMZ (biomass_burn_opt = 7 in &chem), coupled to the
+=== plume rise model.
+=== ---
+===  Registry/registry.chem        |  6 ++++
+===  chem/emissions_driver.F       |  3 +-
+===  chem/module_add_emiss_burn.F  | 37 +++++++++++++++++++++++
+===  chem/module_mosaic_addemiss.F |  4 +--
+===  chem/module_plumerise1.F      | 55 +++++++++++++++++++++++++++++++++++
+===  5 files changed, 102 insertions(+), 3 deletions(-)
+===
+=== diff --git a/Registry/registry.chem b/Registry/registry.chem
+=== index 95aad161..fc9d9b55 100644
+=== --- a/Registry/registry.chem
+=== +++ b/Registry/registry.chem
+=== @@ -429,6 +429,9 @@ state    real  ebu_prod2    ikjf     ebu           1         Z        -      "eb
+===  state    real  ebu_rcho     ikjf     ebu           1         Z        -      "ebu_rcho"      "biomass burning emiss"  "mol km^-2 hr^-1"
+===  state    real  ebu_rno3     ikjf     ebu           1         Z        -      "ebu_rno3"      "biomass burning emiss"  "mol km^-2 hr^-1"
+===  state    real  ebu_terp     ikjf     ebu           1         Z        -      "ebu_terp"      "biomass burning emiss"  "mol km^-2 hr^-1"
+=== +# Additional arrays for CBMZ biomass burning
+=== +state    real  ebu_ol2      ikjf     ebu           1         Z        -      "ebu_ol2"      "biomass burning emiss"  "mol km^-2 hr^-1"
+=== +state    real  ebu_par      ikjf     ebu           1         Z        -      "ebu_par"       "biomass burning emiss"  "mol km^-2 hr^-1"
+===
+===  # CH4 biomass burning emissions
+===  state    real  ebu_ch4      ikjf     ebu           1         Z        h      "ebu_ch4"       "biomass burning emiss"  "mol km^-2 hr^-1"
+=== @@ -4138,6 +4141,9 @@ package   biomassb_ghg  biomass_burn_opt==5          -             state::mean_f
+===  # SAPRC99 biomass burning package
+===  package   biomassb_saprc       biomass_burn_opt==6             -          state:mean_fct_agtf,mean_fct_agef,mean_fct_agsv,mean_fct_aggr,firesize_agtf,firesize_agef,firesize_agsv,firesize_aggr;ebu:ebu_co,ebu_no,ebu_no2,ebu_so2,ebu_nh3,ebu_ch4,ebu_acet,ebu_c2h6,ebu_c3h8,ebu_alk3,ebu_alk4,ebu_alk5,ebu_aro1,ebu_aro2,ebu_bald,ebu_ccho,ebu_cco_oh,ebu_ethene,ebu_hcho,ebu_hcooh,ebu_hono,ebu_isoprene,ebu_mek,ebu_meoh,ebu_methacro,ebu_mgly,ebu_mvk,ebu_ole1,ebu_ole2,ebu_phen,ebu_prod2,ebu_rcho,ebu_rno3,ebu_terp,ebu_oc,ebu_bc,ebu_sulf;ebu_in:ebu_in_co,ebu_in_no,ebu_in_no2,ebu_in_so2,ebu_in_nh3,ebu_in_ch4,ebu_in_acet,ebu_in_c2h6,ebu_in_c3h8,ebu_in_alk3,ebu_in_alk4,ebu_in_alk5,ebu_in_aro1,ebu_in_aro2,ebu_in_bald,ebu_in_ccho,ebu_in_cco_oh,ebu_in_ethene,ebu_in_hcho,ebu_in_hcooh,ebu_in_hono,ebu_in_isoprene,ebu_in_mek,ebu_in_meoh,ebu_in_methacro,ebu_in_mgly,ebu_in_mvk,ebu_in_ole1,ebu_in_ole2,ebu_in_phen,ebu_in_prod2,ebu_in_rcho,ebu_in_rno3,ebu_in_terp,ebu_in_oc,ebu_in_bc,ebu_in_sulf
+===
+=== +# CBMZ biomass burning
+=== +package   biomassb_cbmz      biomass_burn_opt==7             -          state:mean_fct_agtf,mean_fct_agef,mean_fct_agsv,mean_fct_aggr,firesize_agtf,firesize_agef,firesize_agsv,firesize_aggr;ebu:ebu_co,ebu_no,ebu_no2,ebu_c2h4,ebu_c2h5oh,ebu_c2h6,ebu_c3h6,ebu_c3h8,ebu_ch2o,ebu_ch3cho,ebu_ch3coch3,ebu_ch3oh,ebu_mek,ebu_so2,ebu_toluene,ebu_nh3,ebu_oc,ebu_bc,ebu_pm25,ebu_pm10,ebu_open,ebu_c10h16,ebu_mgly,ebu_ch3cooh,ebu_glyald,ebu_gly,ebu_acetol,ebu_isop,ebu_macr,ebu_mvk,ebu_ol2,ebu_par,ebu_eth,ebu_olt,ebu_oli,ebu_iso,ebu_tol,ebu_csl,ebu_hcho,ebu_ald,ebu_ket,ebu_xyl,ebu_ora1,ebu_ora2,ebu_co2,ebu_ete,ebu_dien,ebu_api,ebu_lim;ebu_in:ebu_in_co,ebu_in_no,ebu_in_c2h4,ebu_in_c2h5oh,ebu_in_c2h6,ebu_in_c3h6,ebu_in_c3h8,ebu_in_ch2o,ebu_in_ch3cho,ebu_in_ch3coch3,ebu_in_ch3oh,ebu_in_mek,ebu_in_so2,ebu_in_toluene,ebu_in_nh3,ebu_in_no2,ebu_in_open,ebu_in_c10h16,ebu_in_mgly,ebu_in_ch3cooh,ebu_in_glyald,ebu_in_gly,ebu_in_acetol,ebu_in_isop,ebu_in_macr,ebu_in_mvk,ebu_in_pm25,ebu_in_pm10,ebu_in_oc,ebu_in_bc,ebu_in_ol2,ebu_in_par,ebu_in_eth,ebu_in_olt,ebu_in_oli,ebu_in_iso,ebu_in_tol,ebu_in_csl,ebu_in_hcho,ebu_in_ald,ebu_in_ket,ebu_in_xyl,ebu_in_ora1,ebu_in_ora2,ebu_in_co2,ebu_in_ete,ebu_in_dien,ebu_in_api,ebu_in_bc
+=== +
+===  package   opt_out      opt_pars_out==1             -          ext_coef:extcof3,extcof55,extcof106,extcof3_5,extcof8_12;bscat_coef:bscof3,bscof55,bscof106;asym_par:asympar3,asympar55,asympar106
+===
+===  # dust and sea salt packages
+=== diff --git a/chem/emissions_driver.F b/chem/emissions_driver.F
+=== index 6abed7ae..ef1c47ea 100644
+=== --- a/chem/emissions_driver.F
+=== +++ b/chem/emissions_driver.F
+=== @@ -632,6 +632,7 @@ CONTAINS
+===             config_flags%biomass_burn_opt == BIOMASSB_T1_MOZCART  .OR. &
+===             config_flags%biomass_burn_opt == BIOMASSB_MOZ  .OR. &
+===             config_flags%biomass_burn_opt == BIOMASSB_SAPRC .OR. &
+=== +           config_flags%biomass_burn_opt == BIOMASSB_CBMZ .OR. &
+===             config_flags%biomass_burn_opt == BIOMASSB_GHG  .OR. &
+===             config_flags%biomass_burn_opt == BIOMASSB ) then
+===          IF ( ktau==1 ) then
+=== @@ -785,7 +786,7 @@ CONTAINS
+===  !!! ***********   FIRE AND CHEM ****************************************
+===  !
+===      fire_select:  SELECT CASE(config_flags%biomass_burn_opt)
+=== -     CASE (BIOMASSB,BIOMASSB_MOZC,BIOMASSB_MOZ,BIOMASSB_T1_MOZCART,BIOMASSB_GHG,BIOMASSB_SAPRC)
+=== +     CASE (BIOMASSB,BIOMASSB_MOZC,BIOMASSB_MOZ,BIOMASSB_T1_MOZCART,BIOMASSB_GHG,BIOMASSB_SAPRC,BIOMASSB_CBMZ)
+===  !      if( do_plumerisefire )then
+===  !         CALL wrf_debug(15,'fire emissions: calling biomassb')
+===  !         write(0,*)ktau,stepfirepl
+=== diff --git a/chem/module_add_emiss_burn.F b/chem/module_add_emiss_burn.F
+=== index 722fc51f..517825e0 100644
+=== --- a/chem/module_add_emiss_burn.F
+=== +++ b/chem/module_add_emiss_burn.F
+=== @@ -493,6 +493,43 @@ CONTAINS
+===              enddo
+===            enddo
+===          endif
+=== +! Add a biomass burning emission package for CBMZ
+=== +     CASE (CBMZSORG, CBMZSORG_AQ, CBMZ, CBMZ_BB, CBMZ_BB_KPP, &
+=== +           CBMZ_MOSAIC_KPP, CBMZ_MOSAIC_4BIN, CBMZ_MOSAIC_8BIN, &
+=== +           CBMZ_MOSAIC_4BIN_AQ, CBMZ_MOSAIC_8BIN_AQ, CBMZ_MOSAIC_DMS_4BIN &
+=== +           CBMZ_MOSAIC_DMS_8BIN, CBMZ_MOSAIC_DMS_4BIN_AQ, &
+=== +           CBMZ_MOSAIC_DMS_8BIN_)
+=== +        if( biomass_burn_opt == BIOMASSB_CBMZ ) then
+=== +          call wrf_debug(15,'adding fire emissions for CBMZ')
+=== +          do j=jts,jte
+=== +            do k=kts,kte
+=== +              do i=its,ite
+=== +                conv_rho = (r_q*4.828e-4*dtstep)/(rho_phy(i,k,j)*60.*dz8w(i,k,j))
+=== +                chem(i,k,j,p_no2) = chem(i,k,j,p_no2) + ebu(i,k,j,p_ebu_no2)*conv_rho
+=== +                chem(i,k,j,p_c2h5oh) = chem(i,k,j,p_c2h5oh) + ebu(i,k,j,p_ebu_c2h5oh)*conv_rho
+=== +                chem(i,k,j,p_par) = chem(i,k,j,p_par) + ebu(i,k,j,p_ebu_par)*conv_rho
+=== +                chem(i,k,j,p_ch3oh) = chem(i,k,j,p_ch3oh) + ebu(i,k,j,p_ebu_ch3oh)*conv_rho
+=== +                chem(i,k,j,p_csl)  = chem(i,k,j,p_csl) + ebu(i,k,j,p_ebu_csl)*conv_rho
+=== +                chem(i,k,j,p_so2)  = chem(i,k,j,p_so2) + ebu(i,k,j,p_ebu_so2)*conv_rho
+=== +                chem(i,k,j,p_no)   = chem(i,k,j,p_no) + ebu(i,k,j,p_ebu_no)*conv_rho
+=== +                chem(i,k,j,p_ald)  = chem(i,k,j,p_ald) + ebu(i,k,j,p_ebu_ald)*conv_rho
+=== +                chem(i,k,j,p_hcho) = chem(i,k,j,p_hcho) + ebu(i,k,j,p_ebu_hcho)*conv_rho
+=== +                chem(i,k,j,p_ora2) = chem(i,k,j,p_ora2) + ebu(i,k,j,p_ebu_ora2)*conv_rho
+=== +                chem(i,k,j,p_nh3)  = chem(i,k,j,p_nh3) + ebu(i,k,j,p_ebu_nh3)*conv_rho
+=== +                chem(i,k,j,p_eth)  = chem(i,k,j,p_eth) + ebu(i,k,j,p_ebu_eth)*conv_rho
+=== +                chem(i,k,j,p_co)   = chem(i,k,j,p_co) + ebu(i,k,j,p_ebu_co)*conv_rho
+=== +                chem(i,k,j,p_ol2)  = chem(i,k,j,p_ol2) + ebu(i,k,j,p_ebu_ol2)*conv_rho
+=== +                chem(i,k,j,p_olt)  = chem(i,k,j,p_olt) + ebu(i,k,j,p_ebu_olt)*conv_rho
+=== +                chem(i,k,j,p_oli)  = chem(i,k,j,p_oli) + ebu(i,k,j,p_ebu_oli)*conv_rho
+=== +                chem(i,k,j,p_tol)  = chem(i,k,j,p_tol) + ebu(i,k,j,p_ebu_tol)*conv_rho
+=== +                chem(i,k,j,p_xyl)  = chem(i,k,j,p_xyl) + ebu(i,k,j,p_ebu_xyl)*conv_rho
+=== +                chem(i,k,j,p_ket)  = chem(i,k,j,p_ket) + ebu(i,k,j,p_ebu_ket)*conv_rho
+=== +                chem(i,k,j,p_iso)  = chem(i,k,j,p_iso) + ebu(i,k,j,p_ebu_iso)*conv_rho
+=== +                chem(i,k,j,p_ora1)  = chem(i,k,j,p_ora1) + ebu(i,k,j,p_ebu_ora1)*conv_rho
+=== +              enddo
+=== +            enddo
+=== +          enddo
+=== +        endif
+===  !--lm
+===      CASE DEFAULT
+===         call wrf_debug(15,'nothing done with burn emissions for chem array')
+=== diff --git a/chem/module_mosaic_addemiss.F b/chem/module_mosaic_addemiss.F
+=== index 1f83f384..b2d90825 100644
+=== --- a/chem/module_mosaic_addemiss.F
+=== +++ b/chem/module_mosaic_addemiss.F
+=== @@ -366,7 +366,7 @@ real, save :: fr8b_bburn_mosaic(8) = &
+===  !++ SAN 2015-04-09: Mapping fire emissions to MOSAIC
+===  ! get arrays for apportioning mass into MOSAIC bins for fire emissions
+===          fire_inpt_select: SELECT CASE (config_flags%biomass_burn_opt)
+=== -          CASE (BIOMASSB,BIOMASSB_MOZC,BIOMASSB_SAPRC)
+=== +          CASE (BIOMASSB,BIOMASSB_MOZC,BIOMASSB_SAPRC,BIOMASSB_CBMZ)
+===              if (nsize_aer(itype) .eq. 8) then
+===                bburn_mosaic_f(:) = fr8b_bburn_mosaic(:)
+===  !++SAN
+=== @@ -589,7 +589,7 @@ real, save :: fr8b_bburn_mosaic(8) = &
+===    aem_num = 0.
+===
+===   fire_select:  SELECT CASE(config_flags%biomass_burn_opt)
+=== -   CASE (BIOMASSB,BIOMASSB_MOZC,BIOMASSB_SAPRC)
+=== +   CASE (BIOMASSB,BIOMASSB_MOZC,BIOMASSB_SAPRC,BIOMASSB_CBMZ)
+===        CALL wrf_debug(15,'mosaic_addemiss: adding fire emissions to MOSAIC')
+===  !      CALL wrf_debug(15,'e_oin_fm = PM2.5 - OC - BC')
+===  !      CALL wrf_debug(15,'e_oin_cm = PM10 - PM2.5')
+=== diff --git a/chem/module_plumerise1.F b/chem/module_plumerise1.F
+=== index 6f1a43a4..b9036950 100644
+=== --- a/chem/module_plumerise1.F
+=== +++ b/chem/module_plumerise1.F
+=== @@ -243,6 +243,61 @@ subroutine plumerise_driver (id,ktau,dtstep,                           &
+===                 ebu(i,kts,j,p_ebu_bc) = ebu_in(i,1,j,p_ebu_in_bc)
+===              enddo
+===           enddo
+=== +! Biomass burning emission package for CBMZ
+=== +       elseif ( config_flags%biomass_burn_opt == BIOMASSB_CBMZ ) then
+=== +         do j=jts,jte
+=== +           do i=its,ite
+=== +             ebu(i,kts,j,p_ebu_no)=ebu_in(i,1,j,p_ebu_in_no)
+=== +             ebu(i,kts,j,p_ebu_co)=ebu_in(i,1,j,p_ebu_in_co)
+=== +             ebu(i,kts,j,p_ebu_c2h4) = ebu_in(i,1,j,p_ebu_in_c2h4)
+=== +             ebu(i,kts,j,p_ebu_c2h5oh) = ebu_in(i,1,j,p_ebu_in_c2h5oh)
+=== +             ebu(i,kts,j,p_ebu_c2h6) = ebu_in(i,1,j,p_ebu_in_c2h6)
+=== +             ebu(i,kts,j,p_ebu_c3h6) = ebu_in(i,1,j,p_ebu_in_c3h6)
+=== +             ebu(i,kts,j,p_ebu_c3h8) = ebu_in(i,1,j,p_ebu_in_c3h8)
+=== +             ebu(i,kts,j,p_ebu_ch2o) = ebu_in(i,1,j,p_ebu_in_ch2o)
+=== +             ebu(i,kts,j,p_ebu_ch3cho) = ebu_in(i,1,j,p_ebu_in_ch3cho)
+=== +             ebu(i,kts,j,p_ebu_ch3coch3) = ebu_in(i,1,j,p_ebu_in_ch3coch3)
+=== +             ebu(i,kts,j,p_ebu_ch3oh) = ebu_in(i,1,j,p_ebu_in_ch3oh)
+=== +             ebu(i,kts,j,p_ebu_mek) = ebu_in(i,1,j,p_ebu_in_mek)
+=== +             ebu(i,kts,j,p_ebu_so2) = ebu_in(i,1,j,p_ebu_in_so2)
+=== +             ebu(i,kts,j,p_ebu_toluene) = ebu_in(i,1,j,p_ebu_in_toluene)
+=== +             ebu(i,kts,j,p_ebu_nh3) = ebu_in(i,1,j,p_ebu_in_nh3)
+=== +             ebu(i,kts,j,p_ebu_no2)=ebu_in(i,1,j,p_ebu_in_no2)
+=== +             ebu(i,kts,j,p_ebu_open) = ebu_in(i,1,j,p_ebu_in_open)
+=== +             ebu(i,kts,j,p_ebu_c10h16) = ebu_in(i,1,j,p_ebu_in_c10h16)
+=== +             ebu(i,kts,j,p_ebu_mgly) = ebu_in(i,1,j,p_ebu_in_mgly)
+=== +             ebu(i,kts,j,p_ebu_ch3cooh) = ebu_in(i,1,j,p_ebu_in_ch3cooh)
+=== +             ebu(i,kts,j,p_ebu_glyald) = ebu_in(i,1,j,p_ebu_in_glyald)
+=== +             ebu(i,kts,j,p_ebu_gly)=ebu_in(i,1,j,p_ebu_in_gly)
+=== +             ebu(i,kts,j,p_ebu_acetol) = ebu_in(i,1,j,p_ebu_in_acetol)
+=== +             ebu(i,kts,j,p_ebu_isop) = ebu_in(i,1,j,p_ebu_in_isop)
+=== +             ebu(i,kts,j,p_ebu_macr) = ebu_in(i,1,j,p_ebu_in_macr)
+=== +             ebu(i,kts,j,p_ebu_mvk)=ebu_in(i,1,j,p_ebu_in_mvk)
+=== +             ebu(i,kts,j,p_ebu_ol2)=ebu_in(i,1,j,p_ebu_in_ol2)
+=== +             ebu(i,kts,j,p_ebu_par)=ebu_in(i,1,j,p_ebu_in_par)
+=== +             ebu(i,kts,j,p_ebu_eth)=ebu_in(i,1,j,p_ebu_in_eth)
+=== +             ebu(i,kts,j,p_ebu_olt)=ebu_in(i,1,j,p_ebu_in_olt)
+=== +             ebu(i,kts,j,p_ebu_oli)=ebu_in(i,1,j,p_ebu_in_oli)
+=== +             ebu(i,kts,j,p_ebu_iso)=ebu_in(i,1,j,p_ebu_in_iso)
+=== +             ebu(i,kts,j,p_ebu_tol)=ebu_in(i,1,j,p_ebu_in_tol)
+=== +             ebu(i,kts,j,p_ebu_csl)=ebu_in(i,1,j,p_ebu_in_csl)
+=== +             ebu(i,kts,j,p_ebu_hcho)=ebu_in(i,1,j,p_ebu_in_hcho)
+=== +             ebu(i,kts,j,p_ebu_ald)=ebu_in(i,1,j,p_ebu_in_ald)
+=== +             ebu(i,kts,j,p_ebu_ket)=ebu_in(i,1,j,p_ebu_in_ket)
+=== +             ebu(i,kts,j,p_ebu_xyl)=ebu_in(i,1,j,p_ebu_in_xyl)
+=== +             ebu(i,kts,j,p_ebu_ora1)=ebu_in(i,1,j,p_ebu_in_ora1)
+=== +             ebu(i,kts,j,p_ebu_ora2)=ebu_in(i,1,j,p_ebu_in_ora2)
+=== +             ebu(i,kts,j,p_ebu_co2)=ebu_in(i,1,j,p_ebu_in_co2)
+=== +             ebu(i,kts,j,p_ebu_ete)=ebu_in(i,1,j,p_ebu_in_ete)
+=== +             ebu(i,kts,j,p_ebu_dien)=ebu_in(i,1,j,p_ebu_in_dien)
+=== +             ebu(i,kts,j,p_ebu_api)=ebu_in(i,1,j,p_ebu_in_api)
+=== +             ebu(i,kts,j,p_ebu_lim)=ebu_in(i,1,j,p_ebu_in_lim)
+=== +             ebu(its:ite,kts,j,p_ebu_pm10) = ebu_in(its:ite,1,j,p_ebu_in_pm10)
+=== +             ebu(its:ite,kts,j,p_ebu_pm25) = ebu_in(its:ite,1,j,p_ebu_in_pm25)
+=== +             ebu(its:ite,kts,j,p_ebu_oc) = ebu_in(its:ite,1,j,p_ebu_in_oc)
+=== +             ebu(its:ite,kts,j,p_ebu_bc) = ebu_in(its:ite,1,j,p_ebu_in_bc)
+=== +           enddo
+=== +         enddo
+===  !--lm
+===         elseif ( config_flags%biomass_burn_opt == BIOMASSB_GHG ) then
+===           do j=jts,jte
+=== --
+=== 2.31.1
+---
+ Registry/registry.chem        |  3 +-
+ chem/module_add_emiss_burn.F  | 78 +++++++++++++++++------------------
+ chem/module_mosaic_addemiss.F |  4 +-
+ chem/module_plumerise1.F      | 18 ++++----
+ 4 files changed, 52 insertions(+), 51 deletions(-)
+
+diff --git a/Registry/registry.chem b/Registry/registry.chem
+index bc5449f..180c40f 100644
+--- a/Registry/registry.chem
++++ b/Registry/registry.chem
+@@ -4393,7 +4393,8 @@ package   biomassb      biomass_burn_opt==1             -          state:mean_fc
+ package   biomassb_mozc      biomass_burn_opt==2             -          state:mean_fct_agtf,mean_fct_agef,mean_fct_agsv,mean_fct_aggr,firesize_agtf,firesize_agef,firesize_agsv,firesize_aggr;ebu:ebu_co,ebu_no,ebu_no2,ebu_bigalk,ebu_bigene,ebu_c2h4,ebu_c2h5oh,ebu_c2h6,ebu_c3h6,ebu_c3h8,ebu_ch2o,ebu_ch3cho,ebu_ch3coch3,ebu_ch3oh,ebu_mek,ebu_so2,ebu_toluene,ebu_nh3,ebu_oc,ebu_bc,ebu_pm25,ebu_pm10,ebu_open,ebu_c10h16,ebu_mgly,ebu_ch3cooh,ebu_cres,ebu_glyald,ebu_gly,ebu_acetol,ebu_isop,ebu_macr,ebu_mvk;ebu_in:ebu_in_co,ebu_in_no,ebu_in_bigalk,ebu_in_bigene,ebu_in_c2h4,ebu_in_c2h5oh,ebu_in_c2h6,ebu_in_c3h6,ebu_in_c3h8,ebu_in_ch2o,ebu_in_ch3cho,ebu_in_ch3coch3,ebu_in_ch3oh,ebu_in_mek,ebu_in_so2,ebu_in_toluene,ebu_in_nh3,ebu_in_no2,ebu_in_open,ebu_in_c10h16,ebu_in_mgly,ebu_in_ch3cooh,ebu_in_cres,ebu_in_glyald,ebu_in_gly,ebu_in_acetol,ebu_in_isop,ebu_in_macr,ebu_in_mvk,ebu_in_pm25,ebu_in_pm10,ebu_in_oc,ebu_in_bc
+ package   biomassb_moz       biomass_burn_opt==3             -          state:mean_fct_agtf,mean_fct_agef,mean_fct_agsv,mean_fct_aggr,firesize_agtf,firesize_agef,firesize_agsv,firesize_aggr;ebu:ebu_co,ebu_no,ebu_no2,ebu_bigalk,ebu_bigene,ebu_c2h4,ebu_c2h5oh,ebu_c2h6,ebu_c3h6,ebu_c3h8,ebu_ch2o,ebu_ch3cho,ebu_ch3coch3,ebu_ch3oh,ebu_mek,ebu_so2,ebu_toluene,ebu_nh3,ebu_open,ebu_c10h16,ebu_mgly,ebu_ch3cooh,ebu_cres,ebu_glyald,ebu_gly,ebu_acetol,ebu_isop,ebu_macr,ebu_mvk;ebu_in:ebu_in_co,ebu_in_no,ebu_in_bigalk,ebu_in_bigene,ebu_in_c2h4,ebu_in_c2h5oh,ebu_in_c2h6,ebu_in_c3h6,ebu_in_c3h8,ebu_in_ch2o,ebu_in_ch3cho,ebu_in_ch3coch3,ebu_in_ch3oh,ebu_in_mek,ebu_in_so2,ebu_in_toluene,ebu_in_nh3,ebu_in_no2,ebu_in_open,ebu_in_c10h16,ebu_in_mgly,ebu_in_ch3cooh,ebu_in_cres,ebu_in_glyald,ebu_in_gly,ebu_in_acetol,ebu_in_isop,ebu_in_macr,ebu_in_mvk
+ package   biomassb_t1_mozcart   biomass_burn_opt==4          -          state:mean_fct_agtf,mean_fct_agef,mean_fct_agsv,mean_fct_aggr,firesize_agtf,firesize_agef,firesize_agsv,firesize_aggr;ebu:ebu_co,ebu_no,ebu_no2,ebu_bigalk,ebu_bigene,ebu_c2h4,ebu_c2h5oh,ebu_c2h6,ebu_c3h6,ebu_c3h8,ebu_ch2o,ebu_ch3cho,ebu_ch3coch3,ebu_ch3oh,ebu_mek,ebu_so2,ebu_toluene,ebu_nh3,ebu_oc,ebu_bc,ebu_pm25,ebu_pm10,ebu_mgly,ebu_ch3cooh,ebu_cres,ebu_glyald,ebu_acetol,ebu_isop,ebu_macr,ebu_mvk,ebu_apin,ebu_benzene,ebu_ch3cn,ebu_hcn,ebu_hcooh,ebu_c2h2,ebu_dms,ebu_hpald,ebu_xylenes;ebu_in:ebu_in_co,ebu_in_no,ebu_in_bigalk,ebu_in_bigene,ebu_in_c2h4,ebu_in_c2h5oh,ebu_in_c2h6,ebu_in_c3h6,ebu_in_c3h8,ebu_in_ch2o,ebu_in_ch3cho,ebu_in_ch3coch3,ebu_in_ch3oh,ebu_in_mek,ebu_in_so2,ebu_in_toluene,ebu_in_nh3,ebu_in_no2,ebu_in_mgly,ebu_in_ch3cooh,ebu_in_cres,ebu_in_glyald,ebu_in_acetol,ebu_in_isop,ebu_in_macr,ebu_in_mvk,ebu_in_pm25,ebu_in_pm10,ebu_in_oc,ebu_in_bc,ebu_in_apin,ebu_in_benzene,ebu_in_ch3cn,ebu_in_hcn,ebu_in_hcooh,ebu_in_c2h2,ebu_in_dms,ebu_in_hpald,ebu_in_xylenes
+-package   biomassb_cbmz      biomass_burn_opt==14             -          state:mean_fct_agtf,mean_fct_agef,mean_fct_agsv,mean_fct_aggr,firesize_agtf,firesize_agef,firesize_agsv,firesize_aggr;ebu:ebu_co,ebu_no,ebu_no2,ebu_c2h4,ebu_c2h5oh,ebu_c2h6,ebu_c3h6,ebu_c3h8,ebu_ch2o,ebu_ch3cho,ebu_ch3coch3,ebu_ch3oh,ebu_mek,ebu_so2,ebu_toluene,ebu_nh3,ebu_oc,ebu_bc,ebu_pm25,ebu_pm10,ebu_open,ebu_c10h16,ebu_mgly,ebu_ch3cooh,ebu_glyald,ebu_gly,ebu_acetol,ebu_isop,ebu_macr,ebu_mvk,ebu_ol2,ebu_par,ebu_eth,ebu_olt,ebu_oli,ebu_iso,ebu_tol,ebu_csl,ebu_hcho,ebu_ald,ebu_ket,ebu_xyl,ebu_ora1,ebu_ora2,ebu_co2,ebu_ete,ebu_dien,ebu_api,ebu_lim;ebu_in:ebu_in_co,ebu_in_no,ebu_in_c2h4,ebu_in_c2h5oh,ebu_in_c2h6,ebu_in_c3h6,ebu_in_c3h8,ebu_in_ch2o,ebu_in_ch3cho,ebu_in_ch3coch3,ebu_in_ch3oh,ebu_in_mek,ebu_in_so2,ebu_in_toluene,ebu_in_nh3,ebu_in_no2,ebu_in_open,ebu_in_c10h16,ebu_in_mgly,ebu_in_ch3cooh,ebu_in_glyald,ebu_in_gly,ebu_in_acetol,ebu_in_isop,ebu_in_macr,ebu_in_mvk,ebu_in_pm25,ebu_in_pm10,ebu_in_oc,ebu_in_bc,ebu_in_ol2,ebu_in_par,ebu_in_eth,ebu_in_olt,ebu_in_oli,ebu_in_iso,ebu_in_tol,ebu_in_csl,ebu_in_hcho,ebu_in_ald,ebu_in_ket,ebu_in_xyl,ebu_in_ora1,ebu_in_ora2,ebu_in_co2,ebu_in_ete,ebu_in_dien,ebu_in_api,ebu_in_bc
++# CBMZ biomass burning
++package   biomassb_cbmz      biomass_burn_opt==7             -          state:mean_fct_agtf,mean_fct_agef,mean_fct_agsv,mean_fct_aggr,firesize_agtf,firesize_agef,firesize_agsv,firesize_aggr;ebu:ebu_co,ebu_no,ebu_no2,ebu_c2h4,ebu_c2h5oh,ebu_c2h6,ebu_c3h6,ebu_c3h8,ebu_ch2o,ebu_ch3cho,ebu_ch3coch3,ebu_ch3oh,ebu_mek,ebu_so2,ebu_toluene,ebu_nh3,ebu_oc,ebu_bc,ebu_pm25,ebu_pm10,ebu_open,ebu_c10h16,ebu_mgly,ebu_ch3cooh,ebu_glyald,ebu_gly,ebu_acetol,ebu_isop,ebu_macr,ebu_mvk,ebu_ol2,ebu_par,ebu_eth,ebu_olt,ebu_oli,ebu_iso,ebu_tol,ebu_csl,ebu_hcho,ebu_ald,ebu_ket,ebu_xyl,ebu_ora1,ebu_ora2,ebu_co2,ebu_ete,ebu_dien,ebu_api,ebu_lim;ebu_in:ebu_in_co,ebu_in_no,ebu_in_c2h4,ebu_in_c2h5oh,ebu_in_c2h6,ebu_in_c3h6,ebu_in_c3h8,ebu_in_ch2o,ebu_in_ch3cho,ebu_in_ch3coch3,ebu_in_ch3oh,ebu_in_mek,ebu_in_so2,ebu_in_toluene,ebu_in_nh3,ebu_in_no2,ebu_in_open,ebu_in_c10h16,ebu_in_mgly,ebu_in_ch3cooh,ebu_in_glyald,ebu_in_gly,ebu_in_acetol,ebu_in_isop,ebu_in_macr,ebu_in_mvk,ebu_in_pm25,ebu_in_pm10,ebu_in_oc,ebu_in_bc,ebu_in_ol2,ebu_in_par,ebu_in_eth,ebu_in_olt,ebu_in_oli,ebu_in_iso,ebu_in_tol,ebu_in_csl,ebu_in_hcho,ebu_in_ald,ebu_in_ket,ebu_in_xyl,ebu_in_ora1,ebu_in_ora2,ebu_in_co2,ebu_in_ete,ebu_in_dien,ebu_in_api,ebu_in_bc
+ 
+ # GHG biomass burning
+ package   biomassb_ghg  biomass_burn_opt==5          -             state::mean_fct_agtf,mean_fct_agef,mean_fct_agsv,mean_fct_aggr,firesize_agtf,firesize_agef,firesize_agsv,firesize_aggr;ebu:ebu_co,ebu_co2,ebu_ch4;ebu_in:ebu_in_co,ebu_in_co2,ebu_in_ch4
+diff --git a/chem/module_add_emiss_burn.F b/chem/module_add_emiss_burn.F
+index a31951b..c02d2c2 100644
+--- a/chem/module_add_emiss_burn.F
++++ b/chem/module_add_emiss_burn.F
+@@ -454,45 +454,6 @@ CONTAINS
+           enddo
+           enddo
+         endif
+-!jcr : case cmbz
+-       CASE (CBMZ, CBMZ_BB, CBMZ_BB_KPP, CBMZ_MOSAIC_4BIN, CBMZ_MOSAIC_8BIN, &
+-          CBMZ_MOSAIC_4BIN_AQ, CBMZ_MOSAIC_8BIN_AQ, &
+-          CBMZSORG, CBMZSORG_AQ, CBMZ_MOSAIC_DMS_4BIN, CBMZ_MOSAIC_DMS_8BIN, &
+-          CBMZ_MOSAIC_KPP, &
+-          CBMZ_MOSAIC_DMS_4BIN_AQ, CBMZ_MOSAIC_DMS_8BIN_AQ)
+-        if( biomass_burn_opt == BIOMASSB_CBMZ ) then
+-          call wrf_debug(15,'adding fire emissions for CBMZ')
+-          do j=jts,jte
+-            do k=kts,kte
+-              do i=its,ite
+-                conv_rho = (r_q*4.828e-4*dtstep)/(rho_phy(i,k,j)*60.*dz8w(i,k,j))
+-                chem(i,k,j,p_no2) = chem(i,k,j,p_no2) + ebu(i,k,j,p_ebu_no2)*conv_rho
+-                chem(i,k,j,p_c2h5oh) = chem(i,k,j,p_c2h5oh) + ebu(i,k,j,p_ebu_c2h5oh)*conv_rho
+-                chem(i,k,j,p_par) = chem(i,k,j,p_par) + ebu(i,k,j,p_ebu_par)*conv_rho
+-                chem(i,k,j,p_ch3oh) = chem(i,k,j,p_ch3oh) + ebu(i,k,j,p_ebu_ch3oh)*conv_rho
+-                chem(i,k,j,p_csl)  = chem(i,k,j,p_csl) + ebu(i,k,j,p_ebu_csl)*conv_rho
+-                chem(i,k,j,p_so2)  = chem(i,k,j,p_so2) + ebu(i,k,j,p_ebu_so2)*conv_rho
+-                chem(i,k,j,p_no)   = chem(i,k,j,p_no) + ebu(i,k,j,p_ebu_no)*conv_rho
+-                chem(i,k,j,p_ald)  = chem(i,k,j,p_ald) + ebu(i,k,j,p_ebu_ald)*conv_rho
+-                chem(i,k,j,p_hcho) = chem(i,k,j,p_hcho) + ebu(i,k,j,p_ebu_hcho)*conv_rho
+-                chem(i,k,j,p_ora2) = chem(i,k,j,p_ora2) + ebu(i,k,j,p_ebu_ora2)*conv_rho
+-                chem(i,k,j,p_nh3)  = chem(i,k,j,p_nh3) + ebu(i,k,j,p_ebu_nh3)*conv_rho
+-                chem(i,k,j,p_eth)  = chem(i,k,j,p_eth) + ebu(i,k,j,p_ebu_eth)*conv_rho
+-                chem(i,k,j,p_co)   = chem(i,k,j,p_co) + ebu(i,k,j,p_ebu_co)*conv_rho
+-                chem(i,k,j,p_ol2)  = chem(i,k,j,p_ol2) + ebu(i,k,j,p_ebu_ol2)*conv_rho
+-                chem(i,k,j,p_olt)  = chem(i,k,j,p_olt) + ebu(i,k,j,p_ebu_olt)*conv_rho
+-                chem(i,k,j,p_oli)  = chem(i,k,j,p_oli) + ebu(i,k,j,p_ebu_oli)*conv_rho
+-                chem(i,k,j,p_tol)  = chem(i,k,j,p_tol) + ebu(i,k,j,p_ebu_tol)*conv_rho
+-                chem(i,k,j,p_xyl)  = chem(i,k,j,p_xyl) + ebu(i,k,j,p_ebu_xyl)*conv_rho
+-                chem(i,k,j,p_ket)  = chem(i,k,j,p_ket) + ebu(i,k,j,p_ebu_ket)*conv_rho
+-                chem(i,k,j,p_iso)  = chem(i,k,j,p_iso) + ebu(i,k,j,p_ebu_iso)*conv_rho
+-                chem(i,k,j,p_ora1)  = chem(i,k,j,p_ora1) + ebu(i,k,j,p_ebu_ora1)*conv_rho
+-              enddo
+-            enddo
+-          enddo
+-        endif
+-!jcr : end case cmbz
+-
+ !++lm New biomass burning emission package for SAPRC VBS2 mechanisms
+         CASE (SAPRC99_MOSAIC_4BIN_VBS2_KPP, SAPRC99_MOSAIC_8BIN_VBS2_AQ_KPP, SAPRC99_MOSAIC_8BIN_VBS2_KPP)
+         if( biomass_burn_opt == BIOMASSB_SAPRC ) then
+@@ -539,6 +500,45 @@ CONTAINS
+             enddo
+           enddo
+         endif
++!jcr : case cmbz
++     CASE (CBMZSORG, CBMZSORG_AQ, CBMZ, CBMZ_BB, CBMZ_BB_KPP, &
++           CBMZ_MOSAIC_KPP, CBMZ_MOSAIC_4BIN, CBMZ_MOSAIC_8BIN, &
++           CBMZ_MOSAIC_4BIN_AQ, CBMZ_MOSAIC_8BIN_AQ, CBMZ_MOSAIC_DMS_4BIN, &
++           CBMZ_MOSAIC_DMS_8BIN, CBMZ_MOSAIC_DMS_4BIN_AQ, &
++           CBMZ_MOSAIC_DMS_8BIN_AQ)
++        if( biomass_burn_opt == BIOMASSB_CBMZ ) then
++          call wrf_debug(15,'adding fire emissions for CBMZ')
++          do j=jts,jte
++            do k=kts,kte
++              do i=its,ite
++                conv_rho = (r_q*4.828e-4*dtstep)/(rho_phy(i,k,j)*60.*dz8w(i,k,j))
++                chem(i,k,j,p_no2) = chem(i,k,j,p_no2) + ebu(i,k,j,p_ebu_no2)*conv_rho
++                chem(i,k,j,p_c2h5oh) = chem(i,k,j,p_c2h5oh) + ebu(i,k,j,p_ebu_c2h5oh)*conv_rho
++                chem(i,k,j,p_par) = chem(i,k,j,p_par) + ebu(i,k,j,p_ebu_par)*conv_rho
++                chem(i,k,j,p_ch3oh) = chem(i,k,j,p_ch3oh) + ebu(i,k,j,p_ebu_ch3oh)*conv_rho
++                chem(i,k,j,p_csl)  = chem(i,k,j,p_csl) + ebu(i,k,j,p_ebu_csl)*conv_rho
++                chem(i,k,j,p_so2)  = chem(i,k,j,p_so2) + ebu(i,k,j,p_ebu_so2)*conv_rho
++                chem(i,k,j,p_no)   = chem(i,k,j,p_no) + ebu(i,k,j,p_ebu_no)*conv_rho
++                chem(i,k,j,p_ald)  = chem(i,k,j,p_ald) + ebu(i,k,j,p_ebu_ald)*conv_rho
++                chem(i,k,j,p_hcho) = chem(i,k,j,p_hcho) + ebu(i,k,j,p_ebu_hcho)*conv_rho
++                chem(i,k,j,p_ora2) = chem(i,k,j,p_ora2) + ebu(i,k,j,p_ebu_ora2)*conv_rho
++                chem(i,k,j,p_nh3)  = chem(i,k,j,p_nh3) + ebu(i,k,j,p_ebu_nh3)*conv_rho
++                chem(i,k,j,p_eth)  = chem(i,k,j,p_eth) + ebu(i,k,j,p_ebu_eth)*conv_rho
++                chem(i,k,j,p_co)   = chem(i,k,j,p_co) + ebu(i,k,j,p_ebu_co)*conv_rho
++                chem(i,k,j,p_ol2)  = chem(i,k,j,p_ol2) + ebu(i,k,j,p_ebu_ol2)*conv_rho
++                chem(i,k,j,p_olt)  = chem(i,k,j,p_olt) + ebu(i,k,j,p_ebu_olt)*conv_rho
++                chem(i,k,j,p_oli)  = chem(i,k,j,p_oli) + ebu(i,k,j,p_ebu_oli)*conv_rho
++                chem(i,k,j,p_tol)  = chem(i,k,j,p_tol) + ebu(i,k,j,p_ebu_tol)*conv_rho
++                chem(i,k,j,p_xyl)  = chem(i,k,j,p_xyl) + ebu(i,k,j,p_ebu_xyl)*conv_rho
++                chem(i,k,j,p_ket)  = chem(i,k,j,p_ket) + ebu(i,k,j,p_ebu_ket)*conv_rho
++                chem(i,k,j,p_iso)  = chem(i,k,j,p_iso) + ebu(i,k,j,p_ebu_iso)*conv_rho
++                chem(i,k,j,p_ora1)  = chem(i,k,j,p_ora1) + ebu(i,k,j,p_ebu_ora1)*conv_rho
++              enddo
++            enddo
++          enddo
++        endif
++!jcr : end case cmbz
++
+ !--lm
+     CASE DEFAULT
+        call wrf_debug(15,'nothing done with burn emissions for chem array')
+diff --git a/chem/module_mosaic_addemiss.F b/chem/module_mosaic_addemiss.F
+index b59d42a..7809513 100644
+--- a/chem/module_mosaic_addemiss.F
++++ b/chem/module_mosaic_addemiss.F
+@@ -371,7 +371,7 @@ real, save :: fr8b_bburn_mosaic(8) = &
+ !++ SAN 2015-04-09: Mapping fire emissions to MOSAIC 
+ ! get arrays for apportioning mass into MOSAIC bins for fire emissions
+         fire_inpt_select: SELECT CASE (config_flags%biomass_burn_opt)
+-          CASE (BIOMASSB,BIOMASSB_MOZC,BIOMASSB_SAPRC)
++          CASE (BIOMASSB,BIOMASSB_MOZC,BIOMASSB_SAPRC,BIOMASSB_CBMZ)
+             if (nsize_aer(itype) .eq. 8) then
+               bburn_mosaic_f(:) = fr8b_bburn_mosaic(:)
+ !++SAN
+@@ -594,7 +594,7 @@ real, save :: fr8b_bburn_mosaic(8) = &
+   aem_num = 0.
+ 
+  fire_select:  SELECT CASE(config_flags%biomass_burn_opt)
+-   CASE (BIOMASSB,BIOMASSB_MOZC,BIOMASSB_SAPRC) 
++   CASE (BIOMASSB,BIOMASSB_MOZC,BIOMASSB_SAPRC,BIOMASSB_CBMZ) 
+       CALL wrf_debug(15,'mosaic_addemiss: adding fire emissions to MOSAIC')
+ !      CALL wrf_debug(15,'e_oin_fm = PM2.5 - OC - BC')
+ !      CALL wrf_debug(15,'e_oin_cm = PM10 - PM2.5')
+diff --git a/chem/module_plumerise1.F b/chem/module_plumerise1.F
+index 87adfae..fbdef49 100644
+--- a/chem/module_plumerise1.F
++++ b/chem/module_plumerise1.F
+@@ -250,15 +250,6 @@ subroutine plumerise_driver (id,ktau,dtstep,                           &
+                ebu(its:ite,kts,j,p_ebu_bc)       = ebu_in(its:ite,1,j,p_ebu_in_bc)
+ !            enddo
+          enddo
+-!--lm
+-       elseif ( config_flags%biomass_burn_opt == BIOMASSB_GHG ) then
+-         do j=jts,jte
+-            do i=its,ite
+-               ebu(i,kts,j,p_ebu_co)  = ebu_in(i,1,j,p_ebu_in_co)
+-               ebu(i,kts,j,p_ebu_co2) = ebu_in(i,1,j,p_ebu_in_co2)
+-               ebu(i,kts,j,p_ebu_ch4) = ebu_in(i,1,j,p_ebu_in_ch4)
+-            enddo
+-          enddo
+ !lm Add a biomass burning emission package for CBMZ
+        elseif ( config_flags%biomass_burn_opt == BIOMASSB_CBMZ ) then
+          do j=jts,jte
+@@ -315,6 +306,15 @@ subroutine plumerise_driver (id,ktau,dtstep,                           &
+ !           enddo
+          enddo
+ !lm
++!--lm
++       elseif ( config_flags%biomass_burn_opt == BIOMASSB_GHG ) then
++         do j=jts,jte
++            do i=its,ite
++               ebu(i,kts,j,p_ebu_co)  = ebu_in(i,1,j,p_ebu_in_co)
++               ebu(i,kts,j,p_ebu_co2) = ebu_in(i,1,j,p_ebu_in_co2)
++               ebu(i,kts,j,p_ebu_ch4) = ebu_in(i,1,j,p_ebu_in_ch4)
++            enddo
++          enddo
+        endif
+ !
+        do nv=1,num_ebu
+-- 
+2.31.1
+

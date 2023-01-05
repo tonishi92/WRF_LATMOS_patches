@@ -1,0 +1,32 @@
+From 03bbb9bc14ea44294135193dbc410bc2275c3e30 Mon Sep 17 00:00:00 2001
+From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
+Date: Wed, 23 Nov 2022 13:54:43 +0100
+Subject: [PATCH 41/70] (Update) o3input parameter
+
+TYPE : Update
+
+Description:
+       o3input.eq.3 condition is added
+
+List of modified files:
+   * phys/module_ra_rrtmg_lw.F
+---
+ phys/module_ra_rrtmg_lw.F | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/phys/module_ra_rrtmg_lw.F b/phys/module_ra_rrtmg_lw.F
+index 911d75f..9c1f0a3 100644
+--- a/phys/module_ra_rrtmg_lw.F
++++ b/phys/module_ra_rrtmg_lw.F
+@@ -12010,7 +12010,7 @@ CONTAINS
+             QV1D(K)=max(0.,QV1D(K))
+          ENDDO
+ 
+-         IF (o3input.eq.2) THEN
++         IF (o3input.eq.2 .or. o3input.eq.3) THEN
+             DO K=kts,kte
+                O31D(K)=O33D(I,K,J)
+             ENDDO
+-- 
+2.31.1
+

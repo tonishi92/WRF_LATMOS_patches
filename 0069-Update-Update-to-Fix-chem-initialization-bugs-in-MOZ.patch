@@ -1,0 +1,46 @@
+From c460ea13e442ef2233b0d9c0d0e771abbb5a6319 Mon Sep 17 00:00:00 2001
+From: tonishi92 <tatsuo.onishi@gmail.com>
+Date: Wed, 14 Dec 2022 12:57:31 +0100
+Subject: [PATCH 69/70] [Update] Update to "Fix chem initialization bugs in
+ MOZART and MOSAIC"
+
+A fix is applied to initialize a diagnostic array "irr_rates" for all chem_opt.
+A "not allocated" error (when compiled with a debug option) is avoided
+not only for T1_MOZCART_KPP, MOZCART_KPP, MOZART_MOSAIC_4BIN_AQ_KPP, MOZART_MOSAIC_4BIN_KPP
+but also all other chemistry options (chem_opt).
+
+List of modified files:
+	modified:   chem/chem_driver.F
+---
+ chem/chem_driver.F | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/chem/chem_driver.F b/chem/chem_driver.F
+index d0d421c..ba5efe5 100755
+--- a/chem/chem_driver.F
++++ b/chem/chem_driver.F
+@@ -725,6 +725,21 @@
+        CALL wrf_debug(15,'calling chem_opt=? from chem_driver')
+        endif
+    END SELECT chem_select                              
++
++   ! If chem_opt other than T1_MOZCART_KPP, MOZCART_KPP, MOZART_MOSAIC_4BIN_AQ_KPP, 
++   ! MOZART_MOSAIC_4BIN_KPP, irr_rates is not allocated and raises an error 
++   ! when compiled with a debug option. 
++   ! If irr_rates is not allocated, it is done here for all chem_opt's
++   IF( .not. allocated( irr_rates ) ) THEN
++     ! Placeholders to avoid calling kpp_mechanism_driver with unallocated
++     ! arrays as arguments
++     ALLOCATE( irr_rates(1, 1, 1, 1), stat=astat )
++     num_irr_diag = 0
++   ENDIF
++
++
++
++
+    tracer_select: SELECT CASE(config_flags%tracer_opt)
+     CASE (TRACER_SMOKE)
+        CALL wrf_debug(15,'tracer mode: 1 tracer for fires')
+-- 
+2.31.1
+

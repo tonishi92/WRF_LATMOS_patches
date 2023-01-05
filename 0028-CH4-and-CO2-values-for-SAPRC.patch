@@ -1,0 +1,61 @@
+From b9eff8d43039e52cb75671fc9ea79f521b133d7d Mon Sep 17 00:00:00 2001
+From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
+Date: Wed, 5 Oct 2022 14:25:01 +0200
+Subject: [PATCH 28/70] CH4 and CO2 values for SAPRC
+
+CH4 and CO2 values for SAPRC are modified accordingly to Blasing et al. 2014
+Change the forced CH4 value for SAPRC.
+CH4 = 1.893 : current GHG conc (mace head 2013 value)
+
+TYPE : Updates
+
+list of modified files:
+---------------------------------------------------------------------------------
+chem/chem_driver.F
+   * CH4 value for SAPRC : CH4 = 1.893 (Blasing et al., 2014)
+
+chem/chemics_init.F
+   * CH4 is set to 1.893 for SAPRC99_MOSAIC_8BIN_VBS2_AQ_KPP and chem_in_opt = 0
+   * CO2 is set to 395.4 for SAPRC99_MOSAIC_8BIN_VBS2_AQ_KPP and chem_in_opt = 0
+---
+ chem/chem_driver.F  | 4 +++-
+ chem/chemics_init.F | 8 ++++++--
+ 2 files changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/chem/chem_driver.F b/chem/chem_driver.F
+index 90826ad..29a2edb 100755
+--- a/chem/chem_driver.F
++++ b/chem/chem_driver.F
+@@ -776,7 +776,9 @@
+          do j=jps,jpe
+             do k=kps,kpe
+                do i=ips,ipe
+-                  chem(i,k,j,p_ch4)=1.74
++                  !chem(i,k,j,p_ch4)=1.74
++                  chem(i,k,j,p_ch4)=1.893 !lm Blasing et al., 2014, recent GHG
++                                          !concentrations (used the 2013 value for Mace Head)
+                enddo
+             enddo
+          enddo
+diff --git a/chem/chemics_init.F b/chem/chemics_init.F
+index b6bd7dd..a385429 100755
+--- a/chem/chemics_init.F
++++ b/chem/chemics_init.F
+@@ -1463,8 +1463,12 @@ CASE(GOCARTRACM_KPP,RACM_KPP,RACMPM_KPP,RACMSORG_KPP,RACM_MIM_KPP,RACM_ESRLSORG_
+           do j=jts,jte
+              do k=kts,kte
+                 do i=its,ite
+-                   chem(i,k,j,p_co2)=370.
+-                   chem(i,k,j,p_ch4)=1.7
++!lm                   chem(i,k,j,p_co2)=370.
++!lm                   chem(i,k,j,p_ch4)=1.7
++!lm                    chem(i,k,j,p_co2)=370.
++                   chem(i,k,j,p_ch4)=1.893 !Blasing 2014, current GHG conc (mace head 2013 value)
++                   chem(i,k,j,p_co2)=395.4 !id
++!lm
+                    if (p_pcg1_b_c.gt.1)        chem(i,k,j,p_pcg1_b_c)=0.00
+                    if (p_pcg2_b_c.gt.1)        chem(i,k,j,p_pcg2_b_c)=0.00
+                    if (p_pcg3_b_c.gt.1)        chem(i,k,j,p_pcg3_b_c)=0.00
+-- 
+2.31.1
+

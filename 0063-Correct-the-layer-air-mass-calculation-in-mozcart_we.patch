@@ -1,0 +1,28 @@
+From e57dcffd151b22e68a556f1aa323322a64070adc Mon Sep 17 00:00:00 2001
+From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
+Date: Sat, 13 Aug 2022 16:19:33 +0200
+Subject: [PATCH 63/70] Correct the layer air mass calculation in
+ mozcart_wetscav
+
+In module_mozcart_wetscav, rewrite the calculation of air layer mass
+that was until then assuming the model was hydrostatic.
+---
+ chem/module_mozcart_wetscav.F | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/chem/module_mozcart_wetscav.F b/chem/module_mozcart_wetscav.F
+index c5e6a05..6693e9b 100644
+--- a/chem/module_mozcart_wetscav.F
++++ b/chem/module_mozcart_wetscav.F
+@@ -331,7 +331,7 @@ iloop : &
+            tfac(kts:ktem1) = (t0 - t(kts:ktem1))/(t0*t(kts:ktem1))
+            p(kts:kte)      = p_phy(i,kts:kte,j)*.01
+            delp(kts:ktem1) = p8w(i,kts:ktem1,j) - p8w(i,kts+1:kte,j)
+-           layer_mass(kts:ktem1) = area*delp(kts:ktem1)/g
++           layer_mass(kts:ktem1) = area*dz8w(i,kts:ktem1,j)*rho_phy(i,kts:ktem1,j)
+            totprec(kts:ktem1) = rainprod(i,kts:ktem1,j)*layer_mass(kts:ktem1)
+            totevap(kts:ktem1) = evapprod(i,kts:ktem1,j)*layer_mass(kts:ktem1)
+            rls(kte)      = 0.
+-- 
+2.31.1
+

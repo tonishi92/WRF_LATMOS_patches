@@ -1,0 +1,760 @@
+From 5d71c862420f17a2d7a8388a8082671a766db7e1 Mon Sep 17 00:00:00 2001
+From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
+Date: Thu, 29 Sep 2022 09:56:49 +0200
+Subject: [PATCH 23/70] DMS emissions
+
+TYPE : Enhancement
+
+modified file(s):
+  Registry/registry.chem
+  chem/Makefile_org
+  chem/chem_driver.F
+  chem/emissions_driver.F
+  chem/module_bioemi_megan2.F
+  chem/module_mosaic_dmsemis.F
+  chem/module_nightingale_dmsemis.F
+  chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.def
+  chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.eqn
+  chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.spc
+
+chem/chemics_init.F
+ * Nightingale DMS emissions (dmsemis_opt = 2) requires e_dms_oc to be defined in emis_ant (emiss_opt = 4 or 13)
+ * Nightingale DMS emissions (dmsemis_opt = 2) allows only tested mechanisms (SAPRC99_MOSAIC_8BIN_VBS2_AQ_KPP or CBMZ_MOSAIC_DMS_8BIN_AQ)
+chem/emissions_driver.F
+ * subroutine nightingale_dmsemis for a new option dmsemis_opt == 3 (DMS_NIGHTINGALE) is added.
+chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/
+ saprc99_mosaic_8bin_vbs2_aq.def
+  * FUNCTION Keff3 is added in KPP
+  * FUNCTION usr24 is added in KPP
+ saprc99_mosaic_8bin_vbs2_aq.eqn
+  * 3 equations for DMS are added in KPP
+ saprc99_mosaic_8bin_vbs2_aq.spc
+  * 1 line DMS = IGNORE is added in KPP
+chem/Makefile_org
+ * Add 2 module objects module_mosaic_dmsemis.o and module_nightingale_dmsemis.o in chem/Makefile_org
+chem/module_bioemi_megan2.F
+ * Add ch4 and dms in CASE of CBMZ in the selection GAS_MECH_SELECT
+Registry/registry.chem
+ * Implementation of e_dms_oc : DMS oceanic content to emis_ant
+ * Modification of emiss_opt==4: ecbmz_mosaic (add e_dms_oc: DMS oceanic content in mol/m3)
+ * Modification of emiss_opt==13: esaprcnov (add e_dms_oc: DMS oceanic content in mol/m3)
+ * Implementation of dmsemis_opt==2 : dmsmosaic (dms emission option for cbmz_mosaic)
+ * Implementation of dmsemis_opt==3 : dms_nightingale (dms emission option for saprc_mosaic)
+
+New files added:
+ chem/module_mosaic_dmsemis.F
+ chem/module_nightingale_dmsemis.F
+---
+ Registry/registry.chem                        |  15 +-
+ .../saprc99_mosaic_8bin_vbs2_aq.def           |  31 +++
+ .../saprc99_mosaic_8bin_vbs2_aq.eqn           |   3 +
+ .../saprc99_mosaic_8bin_vbs2_aq.spc           |   1 +
+ chem/Makefile_org                             | 231 ++++++++++++++++++
+ chem/chemics_init.F                           |  21 ++
+ chem/emissions_driver.F                       |  13 +
+ chem/module_bioemi_megan2.F                   |   6 +-
+ chem/module_mosaic_dmsemis.F                  | 113 +++++++++
+ chem/module_nightingale_dmsemis.F             | 130 ++++++++++
+ 10 files changed, 559 insertions(+), 5 deletions(-)
+ create mode 100755 chem/Makefile_org
+ create mode 100644 chem/module_mosaic_dmsemis.F
+ create mode 100644 chem/module_nightingale_dmsemis.F
+
+diff --git a/Registry/registry.chem b/Registry/registry.chem
+index 2c69f61..c9ab344 100644
+--- a/Registry/registry.chem
++++ b/Registry/registry.chem
+@@ -4163,7 +4163,7 @@ rconfig   integer    track_tuv_num        namelist,chem       1               58
+ rconfig   integer    track_tuv_lev        namelist,chem       1               51      -    "nref in module_ftuv_driver"        ""    ""
+ 
+ # control for N2O5 heterogenenous chemistry option in MOSAIC
+-rconfig   integer    n2o5_hetchem         namelist,chem          1              0       rh    "n2o5_hetchem"      ""     ""           
++rconfig   integer    n2o5_hetchem         namelist,chem          1              1       rh    "n2o5_hetchem"      ""     ""           
+ # control for MOSAIC aerosol chemistry and microphysics versions
+ rconfig   integer   mosaic_aerchem_optaa  namelist,chem          1              1       rh    "mosaic_aerchem_optaa"      ""     ""
+ #
+@@ -4305,7 +4305,9 @@ package   cri_mosaic_4bin_aq_kpp  chem_opt==611          -             chem:dms,
+ #
+ package   eradm           emiss_opt==2                   -             emis_ant:e_iso,e_so2,e_no,e_co,e_eth,e_hc3,e_hc5,e_hc8,e_xyl,e_ol2,e_olt,e_oli,e_tol,e_csl,e_hcho,e_ald,e_ket,e_ora2,e_nh3
+ package   eradmsorg       emiss_opt==3                   -             emis_ant:e_iso,e_so2,e_no,e_no2,e_co,e_ch4,e_eth,e_hc3,e_hc5,e_hc8,e_xyl,e_ol2,e_olt,e_oli,e_tol,e_csl,e_hcho,e_ald,e_ket,e_ora2,e_nh3,e_terp,e_hono,e_co2,e_pm25i,e_pm25j,e_pm_10,e_eci,e_ecj,e_orgi,e_orgj,e_so4i,e_so4j,e_no3i,e_no3j,e_naaj,e_naai,e_orgi_a,e_orgj_a,e_orgi_bb,e_orgj_bb,e_hcl,e_cli,e_clj,e_ch3cl
+-package   ecbmz_mosaic    emiss_opt==4                   -             emis_ant:e_iso,e_so2,e_no,e_co,e_eth,e_hc3,e_hc5,e_hc8,e_xyl,e_ol2,e_olt,e_oli,e_tol,e_csl,e_hcho,e_ald,e_ket,e_ora2,e_nh3,e_no2,e_ch3oh,e_c2h5oh,e_pm25i,e_pm25j,e_eci,e_ecj,e_orgi,e_orgj,e_so4i,e_so4j,e_no3i,e_no3j,e_so4c,e_no3c,e_orgc,e_ecc
++#lm Add e_dms_oc, DMS oceanic content in mol/m3 (technically, this should not be in emis_ant)
++package   ecbmz_mosaic    emiss_opt==4                   -             emis_ant:e_iso,e_so2,e_no,e_co,e_eth,e_hc3,e_hc5,e_hc8,e_xyl,e_ol2,e_olt,e_oli,e_tol,e_csl,e_hcho,e_ald,e_ket,e_ora2,e_dms_oc,e_nh3,e_no2,e_ch3oh,e_c2h5oh,e_pm25i,e_pm25j,e_eci,e_ecj,e_orgi,e_orgj,e_so4i,e_so4j,e_no3i,e_no3j,e_so4c,e_no3c,e_orgc,e_ecc
++#package   ecbmz_mosaic    emiss_opt==4                   -             emis_ant:e_iso,e_so2,e_no,e_co,e_eth,e_hc3,e_hc5,e_hc8,e_xyl,e_ol2,e_olt,e_oli,e_tol,e_csl,e_hcho,e_ald,e_ket,e_ora2,e_nh3,e_no2,e_ch3oh,e_c2h5oh,e_pm25i,e_pm25j,e_eci,e_ecj,e_orgi,e_orgj,e_so4i,e_so4j,e_no3i,e_no3j,e_so4c,e_no3c,e_orgc,e_ecc
+ package   ecptec          emiss_opt==5                   -             emis_ant:e_iso,e_so2,e_no,e_no2,e_co,e_eth,e_hc3,e_hc5,e_hc8,e_xyl,e_ol2,e_olt,e_oli,e_tol,e_csl,e_hcho,e_ald,e_ket,e_ora2,e_nh3,e_pm_25,e_pm_10,e_oc,e_sulf,e_bc
+ package   gocart_ecptec   emiss_opt==6                   -             emis_ant:e_so2,e_sulf,e_bc,e_oc,e_pm_25,e_pm_10
+ package   mozem           emiss_opt==7                   -             emis_ant:e_co,e_no,e_no2,e_bigalk,e_bigene,e_c2h4,e_c2h5oh,e_c2h6,e_c3h6,e_c3h8,e_ch2o,e_ch3cho,e_ch3coch3,e_ch3oh,e_mek,e_so2,e_toluene,e_nh3,e_isop,e_c10h16,e_sulf
+@@ -4314,7 +4316,9 @@ package   cammam          emiss_opt==9                   -             emis_ant:
+ 
+ package   mozmem           emiss_opt==10                   -             emis_ant:e_co,e_no,e_no2,e_bigalk,e_bigene,e_c2h4,e_c2h5oh,e_c2h6,e_c3h6,e_c3h8,e_ch2o,e_ch3cho,e_ch3coch3,e_ch3oh,e_mek,e_so2,e_toluene,e_benzene,e_xylene,e_nh3,e_isop,e_apin,e_pm25i,e_pm25j,e_eci,e_ecj,e_orgi,e_orgj,e_so4i,e_so4j,e_no3i,e_no3j,e_nh4i,e_nh4j,e_nai,e_naj,e_cli,e_clj,e_co_a,e_orgi_a,e_orgj_a,e_co_bb,e_orgi_bb,e_orgj_bb,e_pm_10,e_c2h2,e_gly,e_sulf,e_macr,e_mgly,e_mvk,e_hcooh,e_hono
+ package   mozc_t1_em      emiss_opt==11                  -             emis_ant:e_co,e_no,e_no2,e_bigalk,e_bigene,e_c2h4,e_c2h5oh,e_c2h6,e_c3h6,e_c3h8,e_ch2o,e_ch3cho,e_ch3coch3,e_ch3oh,e_mek,e_so2,e_toluene,e_nh3,e_isop,e_hcooh,e_ch3cn,e_ch3cooh,e_hcn,e_apin,e_mvk,e_mgly,e_benzene,e_xylene,e_sulf,e_c2h2,e_pm_10,e_pm_25,e_bc,e_oc
+-package   esaprcnov       emiss_opt==13                  -             emis_ant:e_so2,e_c2h6,e_c3h8,e_c2h2,e_alk3,e_alk4,e_alk5,e_ethene,e_c3h6,e_ole1,e_ole2,e_aro1,e_aro2,e_hcho,e_ccho,e_rcho,e_acet,e_mek,e_isoprene,e_terp,e_sesq,e_co,e_no,e_no2,e_phen,e_cres,e_meoh,e_gly,e_mgly,e_bacl,e_isoprod,e_methacro,e_mvk,e_prod2,e_ch4,e_bald,e_hcooh,e_cco_oh,e_rco_oh,e_nh3,e_pm25i,e_pm25j,e_eci,e_ecj,e_orgi,e_orgj,e_so4i,e_so4j,e_no3i,e_no3j,e_orgi_a,e_orgj_a,e_orgi_bb,e_orgj_bb
++#lm Add e_dms_oc, DMS oceanic content in mol/m3 (technically, this should not be in emis_ant)
++package   esaprcnov       emiss_opt==13                  -             emis_ant:e_so2,e_c2h6,e_c3h8,e_c2h2,e_alk3,e_alk4,e_alk5,e_ethene,e_c3h6,e_ole1,e_ole2,e_aro1,e_aro2,e_hcho,e_ccho,e_rcho,e_acet,e_mek,e_isoprene,e_terp,e_sesq,e_co,e_no,e_no2,e_phen,e_cres,e_meoh,e_gly,e_mgly,e_bacl,e_isoprod,e_methacro,e_mvk,e_prod2,e_ch4,e_bald,e_hcooh,e_cco_oh,e_rco_oh,e_dms_oc,e_nh3,e_pm25i,e_pm25j,e_eci,e_ecj,e_orgi,e_orgj,e_so4i,e_so4j,e_no3i,e_no3j,e_orgi_a,e_orgj_a,e_orgi_bb,e_orgj_bb
++#package   esaprcnov       emiss_opt==13                  -             emis_ant:e_so2,e_c2h6,e_c3h8,e_c2h2,e_alk3,e_alk4,e_alk5,e_ethene,e_c3h6,e_ole1,e_ole2,e_aro1,e_aro2,e_hcho,e_ccho,e_rcho,e_acet,e_mek,e_isoprene,e_terp,e_sesq,e_co,e_no,e_no2,e_phen,e_cres,e_meoh,e_gly,e_mgly,e_bacl,e_isoprod,e_methacro,e_mvk,e_prod2,e_ch4,e_bald,e_hcooh,e_cco_oh,e_rco_oh,e_nh3,e_pm25i,e_pm25j,e_eci,e_ecj,e_orgi,e_orgj,e_so4i,e_so4j,e_no3i,e_no3j,e_orgi_a,e_orgj_a,e_orgi_bb,e_orgj_bb
+ # For CB05 mechanism based on CBMZ speciation, used with emiss_inpt_opt = 102 
+ package   ecb05_opt1      emiss_opt==14                   -             emis_ant:e_no2,e_xyl,e_tol,e_terp,e_so2,e_ora2,e_olt,e_oli,e_ol2,e_no,e_nh3,e_iso,e_hcl,e_hcho,e_eth,e_csl,e_co,e_ch3oh,e_c2h5oh,e_ald,e_aldx,e_hc3,e_hc5,e_hc8,e_ket,e_pm25i,e_pm25j,e_eci,e_ecj,e_orgi,e_orgj,e_so4i,e_so4j,e_no3i,e_no3j,e_so4c,e_no3c,e_orgc,e_ecc,e_pm10
+ # For CB05 emissions inventory base on CB05 speciation, used with emiss_inpt_opt = 101
+@@ -4381,8 +4385,11 @@ package   shao_2001     dust_schme==1                -              emis_dust:ed
+ package   shao_2004     dust_schme==2                -              emis_dust:edust1,edust2,edust3,edust4,edust5
+ package   shao_2011     dust_schme==3                -              emis_dust:edust1,edust2,edust3,edust4,edust5
+ package   seasgocart    seas_opt==1                  -              emis_seas:eseas1,eseas2,eseas3,eseas4
+-package   seasmosaic    seas_opt==2                  -              emis_seas2:eseasj,eseasc
++package   seasmosaic    seas_opt==3                  -              emis_seas2:eseasj,eseasc
+ package   dmsgocart    dmsemis_opt==1                  -              -
++#lm: add a dms emission option for cbmz_mosaic and saprc_mosaic
++package   dmsmosaic        dmsemis_opt==2               -              -
++package   dms_nightingale  dmsemis_opt==3               -             -
+ package   volume_approx    aer_op_opt==1                -             -
+ package   maxwell_approx   aer_op_opt==2                -             -
+ package   volume_exact     aer_op_opt==3                -             -
+diff --git a/chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.def b/chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.def
+index 70a0bf0..0efd510 100755
+--- a/chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.def
++++ b/chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.def
+@@ -24,6 +24,37 @@
+        +y2*(1-X1/(X1 + X2 + 1.0e-35 )))
+     END FUNCTION Keff2
+ !__________________________________________________
++
++
++!__________________________________________________
++
++    REAL(KIND=dp) FUNCTION Keff3 ( A0,B0,C0, TEMP,y2 )
++    REAL(KIND=dp),INTENT(IN) :: y2
++    REAL(KIND=dp),INTENT(IN) :: TEMP
++    REAL(KIND=dp),INTENT(IN):: A0,B0,C0
++
++    Keff3 = y2*(A0 * EXP(- B0 /TEMP ) &
++      *(TEMP/300._dp)**C0)
++
++    END FUNCTION Keff3
++!__________________________________________________
++
++
++!lm: from MOZART
++REAL(KIND=dp) FUNCTION usr24( temp, c_m )
++
++    REAL(KIND=dp), INTENT(IN) :: temp
++    REAL(KIND=dp), INTENT(IN) :: c_m
++
++    REAL(KIND=dp) :: ko, wrk
++
++    wrk   = .21_dp*c_m
++    ko    = 1._dp + 5.5e-31_dp*exp( 7460._dp/temp )*wrk
++    usr24 = 1.7e-42_dp*exp( 7810._dp/temp )*wrk/ko
++
++END FUNCTION usr24
++
++
+ #ENDINLINE
+ 
+ 
+diff --git a/chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.eqn b/chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.eqn
+index 9f3906a..f4a4b3e 100755
+--- a/chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.eqn
++++ b/chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.eqn
+@@ -408,6 +408,9 @@
+ {255} PCG2_F_C + OH  = OPCG1_F_C + 0.5OPCG1_F_O + psd2   : 0.5714D-11 ;
+ {256} PCG2_F_O + OH  = OPCG1_F_O +OH + psd2              : 0.5714D-11 ;
+ 
++{257} DMS+OH=SO2                     : ARR2(9.6e-12_dp, 234._dp, TEMP) ;
++{258} DMS+OH=.5 SO2+.5 HO2           : usr24( temp, c_m ) ;
++{259} DMS+NO3=SO2+HNO3               : ARR2(1.9e-13_dp, -520._dp, TEMP) ;
+ 
+ 
+ 
+diff --git a/chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.spc b/chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.spc
+index ee15464..376f511 100755
+--- a/chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.spc
++++ b/chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.spc
+@@ -84,6 +84,7 @@
+  BIOG1_c=IGNORE;
+  PSD1=IGNORE;
+  PSD2=IGNORE;
++ DMS = IGNORE;
+  PCG1_B_C   = IGNORE;
+  PCG2_B_C   = IGNORE;
+  PCG1_B_O   = IGNORE;
+diff --git a/chem/Makefile_org b/chem/Makefile_org
+new file mode 100755
+index 0000000..2e90b1f
+--- /dev/null
++++ b/chem/Makefile_org
+@@ -0,0 +1,231 @@
++#
++#  Changing this file requires mods to 
++#	WRFV3_top/chem/KPP/util/wkc/change_chem_Makefile.c
++#	Right now it looks at the line in MODULES with module_data_sorgam
++#	AND it cares about the word DEPENDENCIES.  DO NOT EVEN CHANGE
++#	SPACING ON THESE TWO LINES.
++
++LN      =       ln -sf
++MAKE    =       make -i -r
++RM      =       rm -f
++
++MODULES =                                 \
++        module_data_isrpia_data.o         \
++        module_data_ISRPIA.o              \
++        module_data_isrpia_asrc.o         \
++        module_data_isrpia_solut.o        \
++        module_data_isrpia_kmc198.o       \
++        module_data_isrpia_kmc223.o       \
++        module_data_isrpia_kmc248.o       \
++        module_data_isrpia_kmc273.o       \
++        module_data_isrpia_kmc298.o       \
++        module_data_isrpia_kmc323.o       \
++        module_data_isrpia_expnc.o        \
++        module_data_isrpia_caseg.o        \
++        module_data_isrpia_casej.o        \
++        isofwd.o                          \
++        isorev.o                          \
++        isocom.o                          \
++        moduleHETDATA.o                   \
++        moduleHETAERO.o                   \
++        moduleAERODATA.o                  \
++        aerorate_so2.o                    \
++        module_aer_opt_out.o              \
++        module_add_emiss_burn.o           \
++        module_add_emis_cptec.o           \
++        module_bioemi_beis314.o           \
++        module_chem_utilities.o           \
++        module_cmu_dvode_solver.o         \
++        module_data_cbmz.o                \
++        module_data_cmu_bulkaqchem.o      \
++        module_data_gocartchem.o          \
++        module_data_gocart_seas.o         \
++        module_data_mosaic_kind.o         \
++        module_data_mosaic_constants.o    \
++        module_data_mosaic_aero.o         \
++        module_data_mosaic_main.o         \
++        module_data_mosaic_asect.o        \
++        module_data_mosaic_asecthp.o      \
++        module_data_mosaic_boxmod.o       \
++        module_data_mosaic_other.o        \
++        module_data_mosaic_therm.o        \
++        module_data_radm2.o               \
++        module_data_rrtmgaeropt.o         \
++        module_data_megan2.o              \
++        module_data_soa_vbs.o             \
++        module_data_sorgam.o              \
++        module_data_sorgam_vbs.o          \
++        module_ftuv_subs.o                \
++        module_ghg_fluxes.o               \
++        module_gocart_drydep.o            \
++        module_gocart_settling.o          \
++        module_gocart_so2so4.o            \
++        module_input_tracer_data.o        \
++        module_interpolate.o              \
++        module_mosaic_csuesat.o           \
++        module_mozcart_wetscav.o          \
++        module_peg_util.o                 \
++        module_tropopause.o               \
++        module_upper_bc_driver.o          \
++        module_vertmx_wrf.o               \
++        module_wave_data.o                \
++        module_wetdep_ls.o                \
++        module_zero_plumegen_coms.o       \
++        module_vash_settling.o            \
++        module_chem_plumerise_scalar.o    \
++        module_dep_simple.o               \
++        module_gocart_dmsemis.o           \
++        module_mosaic_dmsemis.o            \
++        module_nightingale_dmsemis.o      \
++        module_gocart_aerosols.o          \
++        module_gocart_dust.o              \
++        module_gocart_dust_afwa.o         \
++        module_gocart_seasalt.o           \
++        module_uoc_dust.o                 \
++        module_qf03.o                     \
++        module_soilpsd.o                  \
++        module_dust_load.o                \
++        module_uoc_dustwd.o               \
++        module_data_uoc_wd.o              \
++        module_mosaic_addemiss.o          \
++        module_mosaic_initmixrats.o       \
++        module_mosaic_support.o           \
++        module_mosaic_init_aerpar.o       \
++        module_mosaic_ext.o               \
++        module_mosaic_astem.o             \
++        module_mosaic_lsode.o             \
++        module_mosaic_box_aerchem.o       \
++        module_mosaic_aerchem_intr.o      \
++        module_mosaic_coag1d.o            \
++        module_mosaic_coag3d.o            \
++        module_mosaic_movesect1d.o        \
++        module_mosaic_movesect3d.o        \
++        module_mosaic_newnucb.o           \
++        module_mosaic_sect_intr.o         \
++        module_mosaic_aerdynam_intr.o     \
++        module_mosaic_movesect.o          \
++        module_mosaic_newnuc.o            \
++        module_mosaic_soa_vbs.o           \
++        module_cbmz_lsodes_solver.o       \
++        module_cbmz_rodas3_solver.o       \
++        module_cmu_bulkaqchem.o           \
++        module_data_mgn2mech.o            \
++        module_ftuv_driver.o              \
++        module_fastj_data.o               \
++        module_fastj_mie.o                \
++        module_input_chem_data.o          \
++        module_mosaic_coag.o              \
++        module_mosaic_gly.o               \
++        module_mosaic_wetscav.o           \
++        module_mosaic_therm.o             \
++        module_phot_mad.o                 \
++        params.mod.o                      \
++        numer.o                           \
++        rdxs.o                            \
++        rxn.o                             \
++        params_mod.o                      \
++        module_phot_tuv.o                 \
++        module_subs_tuv.o                 \
++        rtrans.o                          \
++        la_srb.o                          \
++        module_radm.o                     \
++        module_sorgam_aqchem.o            \
++        module_sorgam_vbs_aqchem.o        \
++        module_aerosols_soa_vbs.o         \
++        module_aerosols_sorgam.o          \
++        module_aerosols_sorgam_vbs.o      \
++        module_bioemi_megan2.o            \
++        module_bioemi_simple.o            \
++        module_cbm4_initmixrats.o         \
++        module_cb05_initmixrats.o         \
++        module_cb05_vbs_initmixrats.o     \
++        module_cbmz.o                     \
++        module_cbmz_initmixrats.o         \
++        module_cbmz_rodas_prep.o          \
++        module_ctrans_grell.o             \
++        module_gocart_chem.o              \
++        module_input_tracer.o             \
++	module_lightning_nox_driver.o     \
++	module_lightning_nox_ott.o        \
++	module_lightning_nox_decaria.o    \
++        module_mixactivate_wrappers.o     \
++        module_mosaic_init_aerpar.o       \
++        module_mosaic2_driver.o           \
++        module_mosaic_sumpm.o             \
++        module_mosaic_driver.o            \
++        module_optical_averaging.o        \
++        module_plumerise1.o               \
++        module_mosaic_drydep.o            \
++        module_wetscav_driver.o           \
++        module_prep_wetscav_sorgam.o      \
++        module_input_chem_bioemiss.o      \
++        module_input_dust_errosion.o      \
++        module_input_gocart_dms.o         \
++        module_cbmz_addemiss.o            \
++        module_cbm4_addemiss.o            \
++        module_cb05_addemiss.o            \
++        module_emissions_anthropogenics.o \
++        module_aer_drydep.o               \
++        module_cam_mam_calcsize.o         \
++        module_cam_mam_dust_sediment.o    \
++        module_cam_mam_drydep.o           \
++        module_cam_mam_init.o             \
++        module_cam_mam_initaerodata.o     \
++        module_cam_mam_initmixrats.o      \
++        module_cam_mam_rename.o           \
++        module_cam_mam_wateruptake.o      \
++        module_cam_mam_gasaerexch.o       \
++        module_cam_mam_coag.o             \
++        module_cam_mam_newnuc.o           \
++        module_cam_mam_aerchem_driver.o   \
++        module_cam_mam_addemiss.o         \
++        module_cam_mam_wetscav.o          \
++        module_cam_mam_mz_aerosols_intr.o \
++        module_cam_mam_wetdep.o           \
++        module_cam_mam_cloudchem.o        \
++        module_cam_mam_setsox.o           \
++        module_cam_mam_mo_chem_utls.o     \
++        module_mosaic_cloudchem.o         \
++        module_sorgam_cloudchem.o         \
++        module_sorgam_vbs_cloudchem.o     \
++        module_cam_mam_gas_wetdep_driver.o \
++        module_cam_mam_mo_sethet.o         \
++        module_phot_fastj.o               \
++	module_chem_cup.o      \
++        module_isocom.o                   \
++        module_isofwd.o                   \
++        module_isorev.o
++
++OBJS    =                           \
++	chemics_init.o              \
++	chem_driver.o               \
++	cloudchem_driver.o          \
++	photolysis_driver.o         \
++	optical_driver.o            \
++	mechanism_driver.o          \
++	emissions_driver.o          \
++	dry_dep_driver.o            \
++	aerosol_driver.o 
++
++LIBTARGET    =  chemics
++TARGETDIR    =  ./
++$(LIBTARGET) :  MODULE DRIVERS
++		$(AR) $(ARFLAGS) ../main/$(LIBWRFLIB) $(MODULES) $(OBJS)
++
++MODULE  : $(MODULES)
++
++DRIVERS : $(OBJS)
++
++include ../configure.wrf
++
++convert_emiss : convert_emiss.o
++	$(RANLIB) ../main/$(LIBWRFLIB)
++	$(FC) -o convert_emiss.exe $(LDFLAGS) convert_emiss.o ../main/$(LIBWRFLIB) $(LIB)
++
++clean:
++	@ echo 'use the clean script'
++
++# DEPENDENCIES : only dependencies after this line (don't remove the word DEPENDENCIES)
++
++include depend.chem
++
+diff --git a/chem/chemics_init.F b/chem/chemics_init.F
+index ea06a54..4367dbc 100755
+--- a/chem/chemics_init.F
++++ b/chem/chemics_init.F
+@@ -440,6 +440,13 @@ call wrf_message("**************************************************************
+       call wrf_error_fatal( trim(message_txt) )
+    endif
+ 
++!lm Add this condition on emiss_opt for Nightingale DMS emissions
++   if ( config_flags%dmsemis_opt == 2 .and. (config_flags%emiss_opt /= 4 .and. config_flags%emiss_opt /= 13) ) then
++      call wrf_error_fatal (15,'chemics_init: error, nightingale_dmsemis (dmsemis_opt = 2) &
++                              requires e_dms_oc to be defined in emis_ant (emiss_opt = 4 or 13)')
++   endif
++!lm
++
+     IF ( config_flags%chem_opt == 0 .AND. config_flags%aer_ra_feedback .NE. 0 ) THEN
+ !       config_flags%aer_ra_feedback = 0
+         call wrf_error_fatal(" ERROR: CHEM_INIT: FOR CHEM_OPT = 0, AER_RA_FEEDBACK MUST = 0 ")
+@@ -503,6 +510,20 @@ call wrf_message("**************************************************************
+     ENDIF
+ !--
+     
++!lm For now, do not allow dmsemis_opt=2 for untested mechanisms.
++    IF(config_flags%dmsemis_opt == 2) THEN
++        IF(config_flags%chem_opt == SAPRC99_MOSAIC_8BIN_VBS2_AQ_KPP .or. &
++           config_flags%chem_opt == CBMZ_MOSAIC_DMS_8BIN_AQ) THEN
++           call wrf_debug( 15, 'Using the DMS emission scheme for MOSAIC')
++        ELSE
++           message_txt = "chemics_init.F: ERROR, DMSEMIS_OPT == 2 is currently only allowed with &
++                          tested mechanisms SAPRC99_MOSAIC_8BIN_VBS2_AQ_KPP and CBMZ_MOSAIC_DMS_8BIN_AQ.&
++                          In order to use this option with another mechanism, please modify chemics_init.F"
++           call wrf_error_fatal( trim(message_txt) )
++        ENDIF
++    ENDIF
++!lm
++
+ !-- Load dgnum arrays when restart is active
+ IF ( config_flags%restart ) THEN
+        do j=jts,jte
+diff --git a/chem/emissions_driver.F b/chem/emissions_driver.F
+index 11ef00d..296cde0 100644
+--- a/chem/emissions_driver.F
++++ b/chem/emissions_driver.F
+@@ -95,6 +95,9 @@ CONTAINS
+   USE gocart_seasalt
+   USE uoc_dust  
+   USE module_dms_emis
++!lm Add a new dms emission option
++  USE module_nightingale_dmsemis, only: nightingale_dmsemis
++!lm
+   USE module_mosaic_addemiss
+   USE module_add_emis_cptec
+   USE module_add_emiss_burn
+@@ -779,6 +782,16 @@ CONTAINS
+          ids,ide, jds,jde, kds,kde,                                        &
+          ims,ime, jms,jme, kms,kme,                                        &
+          its,ite, jts,jte, kts,kte                                         )
++!lm Add a new DMS emission scheme
++      CASE (DMS_NIGHTINGALE)
++        CALL wrf_debug(15,'Nightingale et al. dms emissions')
++        call nightingale_dmsemis( id, dtstep, dz8w, config_flags,   &
++         u_phy, v_phy, rho_phy, chem,emis_ant,alt,                  &
++         u10, v10, xland, tsk,                                      &
++         ids,ide, jds,jde, kds,kde,                                 &
++         ims,ime, jms,jme, kms,kme,                                 &
++         its,ite, jts,jte, kts,kte                                  )
++!lm
+       CASE DEFAULT 
+         CALL wrf_debug(15,'no dms emissions')
+       END SELECT dms_select
+diff --git a/chem/module_bioemi_megan2.F b/chem/module_bioemi_megan2.F
+index fe183d6..18229ce 100644
+--- a/chem/module_bioemi_megan2.F
++++ b/chem/module_bioemi_megan2.F
+@@ -1610,7 +1610,11 @@ is_mozm_species : &
+                       ELSE IF ( p_in_chem .EQ. p_tol) THEN	
+                          ebio_tol(i,j)       = ebio_tol(i,j)        + gas_emis
+                          e_bio(i,j,p_tol-1)  = e_bio(i,j,p_tol-1)   + gas_emis*convert2
+-
++!jcr
++                      ELSE IF ( p_in_chem .EQ. p_dms) THEN
++!                         ebio_dms(i,j)       = ebio_dms(i,j)        + gas_emis  !TO
++                         e_bio(i,j,p_dms-1) = e_bio(i,j,p_dms-1) + gas_emis*convert2
++!jcr
+                       END IF
+ 
+ 
+diff --git a/chem/module_mosaic_dmsemis.F b/chem/module_mosaic_dmsemis.F
+new file mode 100644
+index 0000000..620cdee
+--- /dev/null
++++ b/chem/module_mosaic_dmsemis.F
+@@ -0,0 +1,113 @@
++! lm April 2015 Louis Marelle
++! Compute DMS emissions and add them to chem(:,:,:,p_dms)
++! I developped this for CBMZ_MOSAIC with DMS and SAPRC_MOSAIC with DMS reactions
++! added to KPP, but this should work for any mechanism where DMS is defined in
++! chem. However, if someone tries to use this option with another mechanism I
++! included a call to WRF_FATAL in chemics_init.F.
++! This module is based on module_cbmz_addemiss.F
++
++MODULE module_mosaic_dmsemis
++
++CONTAINS
++
++!----------------------------------------------------------------------
++   subroutine mosaic_dmsemis( id, dtstep, dz8w, config_flags,              &
++               u_phy, v_phy, rho_phy, chem, emis_ant, alt,                &
++               u10, v10, xland, tsk,                                      &
++               ids,ide, jds,jde, kds,kde,                                 &
++               ims,ime, jms,jme, kms,kme,                                 &
++               its,ite, jts,jte, kts,kte                                  )
++!
++! calculates and adds emissions to dms in chem
++! (i.e., emissions tendencies over time dtstep are applied 
++! to the trace gas concentrations)
++!
++
++  USE module_configure
++  USE module_state_description
++  USE module_data_radm2
++
++  IMPLICIT NONE
++
++   TYPE(grid_config_rec_type),  INTENT(IN   )    :: config_flags
++
++   INTEGER,      INTENT(IN   ) :: id,                                      &
++                                  ids,ide, jds,jde, kds,kde,               &
++                                  ims,ime, jms,jme, kms,kme,               &
++                                  its,ite, jts,jte, kts,kte
++
++   REAL, INTENT(IN   ) ::    dtstep
++
++! trace species mixing ratios (gases=ppm)
++   REAL, DIMENSION( ims:ime, kms:kme, jms:jme, num_chem ),                 &
++         INTENT(INOUT ) ::   chem
++!
++! emissions arrays (v.1: ppm m/min; v.2: mole km^-2 hr^-1)
++!
++!   REAL, DIMENSION( ims:ime, kms:kme, jms:jme ),                          &
++   REAL, DIMENSION( ims:ime, kms:config_flags%kemit, jms:jme,num_emis_ant),&
++         INTENT(IN ) ::                                                    &
++                         emis_ant
++! layer thickness (m)
++   REAL,  DIMENSION( ims:ime , kms:kme , jms:jme )         ,               &
++          INTENT(IN   ) ::   dz8w, rho_phy,alt, u_phy, v_phy
++
++   REAL,  DIMENSION( ims:ime , jms:jme )         ,               &
++          INTENT(IN   ) ::   u10, v10, xland, tsk
++
++! local variables
++   integer :: i,j,k
++   real :: conv
++! dms_ocean_sfc surface oceanic dms content in mol/m^3, e.g.  Lana et. al 2011
++! dms_ocean_sfc is overwritten by the value in the wrfchemi emission files
++! sc_co2 schmidt number for co2 at 20°C = 600 (reference value)
++   real :: w10, dms_emi, k_dms, dms_ocean_sfc = 0.0, sc_co2 = 600.0, sc_dms, &
++                sst_ij_cels
++
++!       
++! add emissions
++!
++
++   do j=jts,jte  
++      do i=its,ite 
++
++         conv = 4.828e-4/rho_phy(i,kts,j)*dtstep/(dz8w(i,kts,j)*60.)
++         
++         ! Nightingale et al., 2000 parameterization using a Schmidt number 
++         ! for DMS depending on the actual SST
++             ! only over open water (xland>1.5)
++             if (xland(i,j) .gt. 1.5) then
++                 ! Wind speed in m s-1
++                 w10 = sqrt( u10(i,j)** 2.0 + v10(i,j)** 2.0 )
++                 ! we donṫ trust the u10,v10 values, is model layers are very
++                 ! thin near surface (from the gocart modules)
++                 if(dz8w(i,kts,j).lt.12.)w10=sqrt(u_phy(i,kts,j)*u_phy(i,kts,j)+v_phy(i,kts,j)*v_phy(i,kts,j))
++                 ! Convert sst (=tskin at sea surface) to celsius. The Schmidt 
++                 ! number parameterization is only valid between 5 and 30 °C, 
++                 ! so constrain the SST between these two values
++                 sst_ij_cels = ( tsk(i,j) - 273.15 )
++                 if (sst_ij_cels < 5.0) sst_ij_cels = 5.0
++                 if (sst_ij_cels > 30.0) sst_ij_cels = 30.0
++                 ! Schmidt number for DMS, using the sst in celsius, from
++                 ! Saltzman et al., 1993
++                 sc_dms = 2674.0 - 147.12 * sst_ij_cels + 3.726 * sst_ij_cels ** 2.0 &
++                             - 0.038 * sst_ij_cels ** 3
++                 ! Sea - air exchange coefficient from Nightingale et al. 2000, 
++                 ! and unit change from cm hr-1 to m s-1
++                 k_dms = ( 0.222 * w10**2 + 0.333 * w10) * (sc_dms / sc_co2)**(-0.5) / 3600. / 100.
++                 ! DMS oceanic content from the wrfchemi file in mol m-3
++                 dms_ocean_sfc=emis_ant(i,1,j,p_e_dms_oc)
++                 ! DMS emission flux in SI units (mol m-2 s-1)
++                 dms_emi = k_dms * dms_ocean_sfc
++                 ! Change to  WRF-Chem units (mol km-2 hr-1)
++                 dms_emi = dms_emi * 1.0E6 * 3600.0
++                 ! Add emissions to chem, at the surface (k==kts)
++                 chem(i,kts,j,p_dms)  =  chem(i,kts,j,p_dms)               &
++                             +dms_emi*conv
++             end if
++      end do 
++   end do
++
++END subroutine mosaic_dmsemis
++
++END MODULE module_mosaic_dmsemis
+diff --git a/chem/module_nightingale_dmsemis.F b/chem/module_nightingale_dmsemis.F
+new file mode 100644
+index 0000000..5040153
+--- /dev/null
++++ b/chem/module_nightingale_dmsemis.F
+@@ -0,0 +1,130 @@
++! lm Louis Marelle 2015/4
++! Compute DMS emissions and add them to chem(:,:,:,p_dms)
++! I developped this for CBMZ_MOSAIC with DMS and SAPRC_MOSAIC with DMS reactions
++! added to KPP, but this should work for any mechanism where DMS is defined in
++! chem. This routines requires that e_dms_oc, the oceanic dms content, is
++! present in emis_ant (read from the wrfchemi files). This is checked in
++! chem_init
++!
++! This routine needs dms oceanic content as an input, read in wrfchemi files
++! (emis_ant) for now. This oceanic content can be overwritten by another
++! value here if needed (dms_ocean_sfc), see below.
++!
++! This module is based on module_cbmz_addemiss.F
++
++MODULE module_nightingale_dmsemis
++
++CONTAINS
++
++!----------------------------------------------------------------------
++   subroutine nightingale_dmsemis( id, dtstep, dz8w, config_flags,              &
++               u_phy, v_phy, rho_phy, chem, emis_ant, alt,                &
++               u10, v10, xland, tsk,                                      &
++               ids,ide, jds,jde, kds,kde,                                 &
++               ims,ime, jms,jme, kms,kme,                                 &
++               its,ite, jts,jte, kts,kte                                  )
++!
++! calculates and adds emissions to dms in chem
++! (i.e., emissions tendencies over time dtstep are applied 
++! to the trace gas concentrations)
++!
++
++  USE module_configure
++  USE module_state_description
++  USE module_data_radm2
++
++  IMPLICIT NONE
++
++   TYPE(grid_config_rec_type),  INTENT(IN   )    :: config_flags
++
++   INTEGER,      INTENT(IN   ) :: id,                                      &
++                                  ids,ide, jds,jde, kds,kde,               &
++                                  ims,ime, jms,jme, kms,kme,               &
++                                  its,ite, jts,jte, kts,kte
++
++   REAL, INTENT(IN   ) ::    dtstep
++
++! trace species mixing ratios (gases=ppm)
++   REAL, DIMENSION( ims:ime, kms:kme, jms:jme, num_chem ),                 &
++         INTENT(INOUT ) ::   chem
++!
++! emissions arrays (v.1: ppm m/min; v.2: mole km^-2 hr^-1)
++!
++!   REAL, DIMENSION( ims:ime, kms:kme, jms:jme ),                          &
++   REAL, DIMENSION( ims:ime, kms:config_flags%kemit, jms:jme,num_emis_ant),&
++         INTENT(IN ) ::                                                    &
++                         emis_ant
++! layer thickness (m)
++   REAL,  DIMENSION( ims:ime , kms:kme , jms:jme )         ,               &
++          INTENT(IN   ) ::   dz8w, rho_phy,alt, u_phy, v_phy
++
++   REAL,  DIMENSION( ims:ime , jms:jme )         ,               &
++          INTENT(IN   ) ::   u10, v10, xland, tsk
++
++! local variables
++   integer :: i,j,k
++   real :: conv
++! dms_ocean_sfc surface oceanic dms content in mol/m^3, e.g.  Lana et. al 2011
++! dms_ocean_sfc is overwritten by the value in the wrfchemi emission files
++! sc_co2 schmidt number for co2 at 20°C = 600 (reference value)
++   real :: w10, dms_emi, k_dms, dms_ocean_sfc = 0.0, sc_co2 = 600.0, sc_dms, &
++                sst_ij_cels
++
++!       
++! add emissions
++!
++
++   do j=jts,jte  
++      do i=its,ite 
++
++         conv = 4.828e-4 / rho_phy(i,kts,j) * dtstep / (dz8w(i,kts,j) * 60.)
++         
++         ! Nightingale et al., 2000 parameterization using a Schmidt number 
++         ! for DMS depending on the actual SST
++             ! only over open water (xland>1.5)
++             if (xland(i,j) .gt. 1.5) then
++
++                 ! Wind speed in m s-1
++                 w10 = sqrt( u10(i,j) ** 2.0 + v10(i,j) ** 2.0 )
++
++                 ! we donṫ trust the u10,v10 values, is model layers are very
++                 ! thin near surface (this recommandation is from the gocart modules)
++                 if ( dz8w(i,kts,j) .lt. 12.) &
++                   w10 = sqrt( u_phy(i,kts,j) * u_phy(i,kts,j) + v_phy(i,kts,j) * v_phy(i,kts,j) )
++
++                 ! Convert sst (=tskin at sea surface) to celsius. The Schmidt 
++                 ! number parameterization is only valid between 5 and 30 °C, 
++                 ! so constrain the SST between these two values
++                 sst_ij_cels = ( tsk(i,j) - 273.15 )
++                 if (sst_ij_cels < 5.0) sst_ij_cels = 5.0
++                 if (sst_ij_cels > 30.0) sst_ij_cels = 30.0
++
++                 ! Schmidt number for DMS, using the sst in celsius, from
++                 ! Saltzman et al., 1993
++                 sc_dms = 2674.0 - 147.12 * sst_ij_cels + 3.726 * sst_ij_cels ** 2.0 &
++                             - 0.038 * sst_ij_cels ** 3
++
++                 ! Sea - air exchange coefficient from Nightingale et al. 2000, 
++                 ! and unit change from cm hr-1 to m s-1
++                 k_dms = ( 0.222 * w10**2 + 0.333 * w10) * (sc_dms / sc_co2)**(-0.5) / 3600. / 100.
++
++                 ! This can be commented in order to use a single
++                 ! (0D) hardcoded value of dms_ocean_sfc if needed
++                 dms_ocean_sfc=emis_ant(i,1,j,p_e_dms_oc)
++
++                 ! DMS emission flux in SI units (mol m-2 s-1)
++                 dms_emi = k_dms * dms_ocean_sfc
++                 ! Change to  WRF-Chem units (mol km-2 hr-1)
++                 dms_emi = dms_emi * 1.0E6 * 3600.0
++
++                 ! Add emissions to chem, at the surface (k==kts)
++                 chem(i,kts,j,p_dms)  =  chem(i,kts,j,p_dms)               &
++                             +dms_emi*conv
++
++             end if !xland .gt 1.5, over open water
++      end do 
++   end do
++
++END subroutine nightingale_dmsemis
++
++END MODULE module_nightingale_dmsemis
+-- 
+2.31.1
+

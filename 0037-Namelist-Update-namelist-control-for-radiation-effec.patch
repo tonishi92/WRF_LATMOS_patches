@@ -1,0 +1,88 @@
+From 464e0cd7340fa9e976647145dbcbbdfa82ae4772 Mon Sep 17 00:00:00 2001
+From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
+Date: Tue, 22 Nov 2022 14:07:25 +0100
+Subject: [PATCH 37/70] (Namelist Update) namelist control for radiation effect
+ calculations
+
+TYPE : Updates
+radeffect_option == 0 (default) : No calculation of radiation effects
+                 != 0           : Aerosol optical properties without effect of BC, SO4, NO3, NH4 or OC are calculated
+
+List of modified files:
+   * Registry/registry.chem
+   * dyn_em/module_first_rk_step_part1.F
+   * phys/module_radiation_driver.F
+
+Related variables:
+   * "do_radeffect" in phys/module_radiation_driver.F
+     - "do_radeffect" = .false. is kept when config_flags%radeffect_option = 0
+---
+ Registry/registry.chem              | 2 ++
+ dyn_em/module_first_rk_step_part1.F | 3 +++
+ phys/module_radiation_driver.F      | 9 +++++++++
+ 3 files changed, 14 insertions(+)
+
+diff --git a/Registry/registry.chem b/Registry/registry.chem
+index 4ebf0bb..bc5449f 100644
+--- a/Registry/registry.chem
++++ b/Registry/registry.chem
+@@ -4092,6 +4092,8 @@ rconfig   integer     gas_drydep_opt      namelist,chem          max_domains
+ rconfig   integer     aer_drydep_opt      namelist,chem          max_domains    1       rh    "aer_drydep_opt"      ""      ""
+ #LI add an option for Zhang dry deposition velocity
+ rconfig   integer     zhang_correction_over_snow_ice      namelist,chem          max_domains    0       rh    "zhang_correction_over_snow_ice"      ""      ""
++#TO2 add an option for radeffect option 
++rconfig   integer     radeffect_option    namelist,chem          max_domains    0       rh    "radeffect"           ""      ""
+ #
+ #LMarelle add an option for gravitational settling in MOSAIC
+ rconfig   integer     aer_settling_opt    namelist,chem          max_domains    0       rh    "mosaic_aer_settling_opt"    ""      ""
+diff --git a/dyn_em/module_first_rk_step_part1.F b/dyn_em/module_first_rk_step_part1.F
+index b522601..8af1add 100644
+--- a/dyn_em/module_first_rk_step_part1.F
++++ b/dyn_em/module_first_rk_step_part1.F
+@@ -277,6 +277,9 @@ BENCH_START(rad_driver_tim)
+      &        ,swint_opt=config_flags%swint_opt                                      &
+      &        ,solar_opt=config_flags%solar_diagnostics                              &
+      &        ,P8W=grid%p_hyd_w        ,P=grid%p_hyd            ,PI=pi_phy           &
++!TO2
++     &        ,radeffect_option=config_flags%radeffect_option                         &
++!TO2
+ !lm Add a time step for the output of the radiative effects of O3 and aerosols
+ !lm     &        ,RADT=grid%radt          ,RA_CALL_OFFSET=grid%ra_call_offset           &
+      &        ,RADT=grid%radt          ,RADEFFECTDT=grid%radeffectdt                 &
+diff --git a/phys/module_radiation_driver.F b/phys/module_radiation_driver.F
+index f7a6fae..9eb1fd6 100644
+--- a/phys/module_radiation_driver.F
++++ b/phys/module_radiation_driver.F
+@@ -27,6 +27,9 @@ CONTAINS
+               ,solar_opt                                                  &
+               ,P8W    ,P ,PI                                              &
+               ,p_top                                                      &
++!TO2      
++              ,radeffect_option                                           &
++!TO2
+ !lm
+ !              ,RADT   ,RA_CALL_OFFSET   &
+               ,RADT ,RADEFFECTDT        &
+@@ -651,6 +654,9 @@ CONTAINS
+    LOGICAL,      INTENT(IN   )    ::   is_CAMMGMP_used !BSINGH:01/31/2013: Added for CAM5 RRTMG
+ 
+    REAL,      INTENT(IN   )       ::   RADT
++!TO2
++   INTEGER,   INTENT(IN   )       ::   RADEFFECT_OPTION
++!TO2
+ !lm
+    REAL,      INTENT(IN   )       ::   RADEFFECTDT
+ !lm
+@@ -1395,6 +1401,9 @@ CONTAINS
+        ENDIF
+      ENDIF
+    ENDIF
++!TO2
++   IF (radeffect_option .eq. 0) do_radeffect = .false.
++!TO2
+    IF (do_radeffect) CALL wrf_debug(1, 'radiation_driver, do accumulated radiative forcing calcs.')
+ !lm
+    IF ( mp_physics .EQ. nuwrf4icescheme ) THEN
+-- 
+2.31.1
+

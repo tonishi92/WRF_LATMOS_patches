@@ -1,0 +1,511 @@
+From adfb50c4862cd2ad7a53bf1d754c5df999590951 Mon Sep 17 00:00:00 2001
+From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
+Date: Tue, 17 May 2016 18:40:45 +0200
+Subject: [PATCH 09/70] Add lightning parameterization for KF-CuP cumuli
+
+Add routines for lightning parameterization with KF-CuP cumuli in phys/
+Add cases in chem_init and lightning_init to constrain the choice of
+possible lightning options that can be used with KF-CuP (only tested
+options lnox_opt= 0 or 1 and iccg_method=3 are allowed for now, other
+options require further modifications to the code)
+---
+ chem/chemics_init.F              |   9 +++
+ dyn_em/start_em.F                |   7 +-
+ phys/module_diagnostics_driver.F |   8 +-
+ phys/module_lightning_driver.F   |  79 +++++++++++++++++++-
+ phys/module_ltng_cpmpr92z.F      | 123 ++++++++++++++++++++++++++++++-
+ phys/module_ltng_iccg.F          |  90 +++++++++++++++++++++-
+ 6 files changed, 308 insertions(+), 8 deletions(-)
+
+diff --git a/chem/chemics_init.F b/chem/chemics_init.F
+index ded975d..bc7f852 100755
+--- a/chem/chemics_init.F
++++ b/chem/chemics_init.F
+@@ -1,4 +1,6 @@
+ !WRF:MODEL_LAYER:INITIALIZATION
++!
++!lm Louis Marelle 2016/5/17: Add lightning nox parameterization for KF-CuP cumuli
+ !
+    subroutine chem_init (id,chem,emis_ant,scalar,dt,bioemdt,photdt,chemdt,stepbioe, &
+                stepphot,stepchem,stepfirepl,plumerisefire_frq,z_at_w,xlat,xlong,    &
+@@ -386,6 +388,13 @@ call wrf_message("**************************************************************
+       endif
+    endif
+ 
++   !LMarelle - Only allow lightning nox options 0 (no lnox) or 1 (Ott lnox) with KF-CuP
++   ! cumuli. 
++   if ( config_flags%cu_physics == 10) then
++     if ( config_flags%lnox_opt /= 0 .and. config_flags%lnox_opt /= 1) then
++       call wrf_error_fatal("chemics_init: KF-CuP cumulus scheme only tested with lnox_opt = 0 or 1")
++     endif
++   endif
+ 
+    if ( config_flags%cu_physics == 5 .OR. config_flags%cu_physics == 3) then
+    if ( config_flags%cu_diag == 0) then
+diff --git a/dyn_em/start_em.F b/dyn_em/start_em.F
+index 0192087..cf268c7 100644
+--- a/dyn_em/start_em.F
++++ b/dyn_em/start_em.F
+@@ -1,5 +1,7 @@
+ !-------------------------------------------------------------------
+-
++!
++!lm Louis Marelle 2016/5/17: Add lightning parameterization for KF-CuP cumuli
++!
+    SUBROUTINE start_domain_em ( grid, allowed_to_read &
+ ! Actual arguments generated from Registry
+ # include "dummy_new_args.inc"
+@@ -1334,6 +1336,9 @@ endif
+                         ,ltngacttime=grid%ltngacttime                                             &
+                         ,iccg_prescribed_num=config_flags%iccg_prescribed_num                     &
+                         ,iccg_prescribed_den=config_flags%iccg_prescribed_den                     &
++!lm add this in order to prevent using lightning param with KFCUP cumuli if iccg_method=/=3
++                        ,iccg_method=config_flags%iccg_method                                     &
++!lm 
+                         ,cellcount_method=config_flags%cellcount_method                           &
+                     ! Order dependent args for domain, mem, and tile dims
+                         ,ids=ids, ide=ide, jds=jds, jde=jde, kds=kds, kde=kde             &
+diff --git a/phys/module_diagnostics_driver.F b/phys/module_diagnostics_driver.F
+index b2ec19f..73047e8 100644
+--- a/phys/module_diagnostics_driver.F
++++ b/phys/module_diagnostics_driver.F
+@@ -1,5 +1,7 @@
+ !WRF:MODEL_LAYER:PHYSICS
+-
++!
++!lm Louis Marelle 2016/5/17: Add lightning parameterization for KF-CuP cumuli
++!
+ MODULE module_diagnostics_driver
+ 
+ CONTAINS
+@@ -206,6 +208,10 @@ CONTAINS
+           ! Scheme specific prognostics
+             grid%ktop_deep, grid%refl_10cm,                    &
+             domain_get_current_time( grid ),                   &
++!lm Additional inputs for lightning param with KF-CuP cumuli
++            config_flags%cu_physics,                           &
++            grid%msft, grid%cldfra_cup, grid%htop, grid%shall, &
++!lm
+           ! Flashrate namelist inputs
+             config_flags%lightning_option,                     &
+             config_flags%lightning_dt,                         &
+diff --git a/phys/module_lightning_driver.F b/phys/module_lightning_driver.F
+index 2a54bd0..3a305fc 100644
+--- a/phys/module_lightning_driver.F
++++ b/phys/module_lightning_driver.F
+@@ -13,6 +13,8 @@
+ ! Contact: J. Wong <johnwong@ucar.edu>
+ !
+ !**********************************************************************
++!
++!lm Louis Marelle 2016/5/17: Add lightning parameterization for KF-CuP cumuli
+ 
+  MODULE module_lightning_driver
+  CONTAINS
+@@ -33,6 +35,9 @@
+                              ,lightning_start_seconds                  &
+                              ,ltngacttime                              &
+                              ,iccg_prescribed_num, iccg_prescribed_den &
++!lm add this in order to prevent using lightning param with KFCUP cumuli if iccg_method=/=3
++                             ,iccg_method                              &
++!lm
+                              ,cellcount_method                         &
+                             ! Order dependent args for domain, mem, and tile dims
+                              ,ids, ide, jds, jde, kds, kde             &
+@@ -61,6 +66,9 @@
+  REAL,     INTENT(IN)        :: lightning_dt, lightning_start_seconds
+  REAL,     INTENT(INOUT)     :: ltngacttime
+  REAL,     INTENT(IN)        :: iccg_prescribed_num, iccg_prescribed_den
++!lm add this in order to prevent using lightning with KFCUP if iccg_method=/=3
++ INTEGER,  INTENT(IN)        :: iccg_method
++!lm
+  INTEGER,  INTENT(INOUT)     :: cellcount_method
+  INTEGER , INTENT(IN)        :: ids, ide, jds, jde, kds, kde,  &
+                                 ims, ime, jms, jme, kms, kme,  &
+@@ -110,6 +118,13 @@
+     ENDIF
+  ENDIF
+ 
++!lm Lightning with KFCuP was only tested with iccg==3, remove this in order to
++!try other methods (requires modifying the iccg routines)
++ IF (iccg_method .ne. 3 .and. cu_physics .eq. KFCUPSCHEME) THEN
++    CALL wrf_error_fatal (' lightning_init: iccg_method cannot be other than 3 when KFCUP is used')
++ ENDIF      
++!lm
++
+ !
+ !-- check to see if lightning_option is valid
+ !
+@@ -128,8 +143,11 @@
+ 
+     ! Convective parameterized
+     CASE (ltng_cpm_PR92z)
+-        IF ( cu_physics .ne. GDSCHEME .and. cu_physics .ne. G3SCHEME .and. cu_physics .ne. GFSCHEME  ) THEN
+-          CALL wrf_error_fatal( ' lightning_init: Selected lightning option requires GD, G3, or GF convective parameterization' )
++        !LMarelle -  Allow lightning NOx convective parameterization to be used
++        ! with KF-CuP cumuli
++        IF ( cu_physics .ne. GDSCHEME .and. cu_physics .ne. G3SCHEME .and. cu_physics .ne. GFSCHEME &
++             .and. cu_physics .ne. KFCUPSCHEME) THEN
++          CALL wrf_error_fatal( ' lightning_init: Selected lightning option requires GD, G3, GF or KF-CuP convective parameterization' )
+         ENDIF
+ 
+         WRITE(message, * ) ' lightning_init: CPM lightning option selected: ', lightning_option
+@@ -216,6 +234,10 @@
+                             ktop_deep,                            &
+                             refl,                                 &
+                             current_time,                         &
++!lm Additional inputs for lightning param with KF-CuP cumuli
++                            cu_physics,                           &
++                            msft, cldfra_cup, htop, shall,        &
++!lm
+                           ! Mandatory namelist inputs
+                             lightning_option,                     &
+                             lightning_dt,                         &
+@@ -279,6 +301,14 @@
+  INTEGER, DIMENSION( ims:ime,          jms:jme ),           INTENT(IN   ) :: ktop_deep     ! model LNB from cu_physics
+  REAL,    DIMENSION( ims:ime, kms:kme, jms:jme ),           INTENT(IN   ) :: refl          ! reflectivity from mp_physics
+  TYPE(WRFU_Time),                                           INTENT(IN   ) :: current_time  ! For use of IC:CG input
++!lm Additional inputs for lightning param with KF-CuP cumuli
++!Also read in cumulus options to know what param to use
++INTEGER,  INTENT(IN)        ::   cu_physics
++REAL,    DIMENSION( ims:ime, kms:kme, jms:jme ),           INTENT(IN   ) :: cldfra_cup !KFCUP cloud fraction (no unit)
++REAL,    DIMENSION( ims:ime,          jms:jme ),           INTENT(IN   ) :: htop !cloud top index
++REAL,    DIMENSION( ims:ime,          jms:jme ),           INTENT(IN   ) :: shall !indicates shallow/deep/no convection
++REAL,    DIMENSION( ims:ime,          jms:jme ),           INTENT(IN   ) :: msft !map factors for grid area scaling
++!lm
+ 
+  REAL, DIMENSION( ims:ime, jms:jme ), INTENT(INOUT), OPTIONAL :: LPI
+ ! Mandatory namelist inputs
+@@ -398,8 +428,26 @@
+ 
+     ! CPM lightning options
+     CASE( ltng_cpm_PR92z )
++
+         CALL wrf_debug ( 100, ' lightning_driver: calling Price and Rind 1992 (z_top, CPM)' )
+ 
++!lm New subroutine in module_ltng_cpmpr92z for KFCuP lightning
++      IF(cu_physics .eq. KFCUPSCHEME) THEN
++        CALL ltng_cpmpr92z_cup ( &
++                  ! Frequently used prognostics
++                    dx, dy, xland, ht, z, t_phy,      &
++                    cldtop_adjustment,                &
++                  ! Additional inputs for lightning param with KF-CuP cumuli
++                    msft, cldfra_cup, htop, shall,    &
++                  ! Order dependent args for domain, mem, and tile dims
++                    ids, ide, jds, jde, kds, kde,     &
++                    ims, ime, jms, jme, kms, kme,     &
++                    its, ite, jts, jte, kts, kte,     &
++                  ! Mandatory output for all quantitative schemes
++                    total_flashrate                   &
++                  ) 
++      ELSE
++!lm
+         CALL ltng_cpmpr92z ( &
+                   ! Frequently used prognostics
+                     dx, dy, xland, ht, z, t_phy,      &
+@@ -412,6 +460,10 @@
+                     total_flashrate                   &
+                   )
+ 
++!lm
++      ENDIF !cu_physics == KFCUPSCHEME
++!lm
++
+     ! LPI lightning options
+ #if (EM_CORE==1)
+     CASE( ltng_lpi )
+@@ -539,7 +591,25 @@
+ 
+         CASE DEFAULT iccg_pr93_select
+             CALL wrf_debug ( 100, ' lightning_driver: using Price and Rind 1993 IC:CG ratio (CPM)')
+-            CALL iccg_pr93( &
++!lm New subroutine in module_ltng_iccg for KFCuP lightning
++            IF(cu_physics .eq. KFCUPSCHEME) THEN
++              CALL iccg_pr93_cup( &
++                    cldtop_adjustment, t_phy, z,    &
++                  ! Additional inputs for iccg param with KF-CuP cumuli
++                    htop, &
++                    shall, &
++                  ! Order dependent args for domain, mem, and tile dims
++                    ids, ide, jds, jde, kds, kde,              &
++                    ims, ime, jms, jme, kms, kme,              &
++                    its, ite, jts, jte, kts, kte,              &
++                  ! Input
++                    total_flashrate,                           &
++                  ! Output
++                    ic_flashrate, cg_flashrate                 &
++                )
++            ELSE
++!lm
++              CALL iccg_pr93( &
+                     ktop_deep, cldtop_adjustment, t_phy, z,    &
+                   ! Order dependent args for domain, mem, and tile dims
+                     ids, ide, jds, jde, kds, kde,              &
+@@ -550,6 +620,9 @@
+                   ! Output
+                     ic_flashrate, cg_flashrate                 &
+                 )
++!lm
++            ENDIF !cu_physics == KFCUPSCHEME
++!lm
+         END SELECT iccg_pr93_select
+ 
+     CASE( 4 ) iccg_select
+diff --git a/phys/module_ltng_cpmpr92z.F b/phys/module_ltng_cpmpr92z.F
+index f93f55c..68c46ae 100644
+--- a/phys/module_ltng_cpmpr92z.F
++++ b/phys/module_ltng_cpmpr92z.F
+@@ -12,6 +12,8 @@
+ ! Contact: J. Wong <johnwong@ucar.edu>
+ !
+ !**********************************************************************
++!
++!lm Louis Marelle 2016/5/17: Add lightning parameterization for KF-CuP cumuli
+ 
+  MODULE module_ltng_cpmpr92z
+  CONTAINS
+@@ -69,8 +71,6 @@
+ 
+  INTEGER :: i,k,j
+ 
+- CHARACTER (LEN=250) :: message
+-
+ !-----------------------------------------------------------------
+ 
+  dA = dx*dy/1E6
+@@ -98,5 +98,124 @@
+  total_flashrate(ips:ipe,jps:jpe) = total_flashrate(ips:ipe,jps:jpe) * dA/baseArea
+ 
+  END SUBROUTINE ltng_cpmpr92z
++ 
++!lm Add a subroutine for KFCUP
++ SUBROUTINE ltng_cpmpr92z_cup ( &
++                          ! Frequently used prognostics
++                            dx, dy, xland, ht, z, t,              &
++                          ! Scheme specific namelist inputs
++                            cldtop_adjustment,                    &
++                          ! Additional inputs for lightning param with KF-CuP cumuli
++                            msft, &
++                            cldfra_cup, &
++                            htop, &
++                            shall, &
++                          ! Order dependent args for domain, mem, and tile dims
++                            ids, ide, jds, jde, kds, kde,         &
++                            ims, ime, jms, jme, kms, kme,         &
++                            ips, ipe, jps, jpe, kps, kpe,         &
++                          ! Mandatory output for all quantitative schemes
++                            total_flashrate                       &
++                          )
++!-----------------------------------------------------------------
++! Framework
++ USE module_state_description
++
++! Model layer
++ USE module_model_constants
++ USE module_wrf_error
++
++ IMPLICIT NONE
++!-----------------------------------------------------------------
++
++! Frequently used prognostics
++ REAL,    INTENT(IN   )    ::       dx, dy
++
++ REAL,    DIMENSION( ims:ime,          jms:jme ), INTENT(IN   ) :: xland, ht
++ REAL,    DIMENSION( ims:ime, kms:kme, jms:jme ), INTENT(IN   ) :: z, t
++
++! Scheme specific namelist inputs
++ REAL,    INTENT(IN   )    ::       cldtop_adjustment
++
++! Additional inputs for lightning param with KF-CuP cumuli
++REAL,    DIMENSION( ims:ime, kms:kme, jms:jme ),           INTENT(IN   ) :: cldfra_cup ! KF-CuP cloud fraction 
++REAL,    DIMENSION( ims:ime,          jms:jme ),           INTENT(IN   ) :: htop ! cloud top index
++REAL,    DIMENSION( ims:ime,          jms:jme ),           INTENT(IN   ) :: shall ! flag indicating shallow/deep/no convection
++REAL,    DIMENSION( ims:ime,          jms:jme ),           INTENT(IN   ) :: msft ! map factors for grid area scaling
++
++! Order dependent args for domain, mem, and tile dims
++ INTEGER, INTENT(IN   )    ::       ids,ide, jds,jde, kds,kde
++ INTEGER, INTENT(IN   )    ::       ims,ime, jms,jme, kms,kme
++ INTEGER, INTENT(IN   )    ::       ips,ipe, jps,jpe, kps,kpe
++
++! Mandatory outputs for all quantitative schemes
++ REAL,    DIMENSION( ims:ime,          jms:jme ), INTENT(  OUT) :: total_flashrate
++
++! Local variables
++ REAL :: dA              ! grid area dx*dy in km2
++ REAL :: zkm             ! AGL z in km
++! Scaling factors for lightning rates (param is grid dependent)
++ REAL :: cldfra_scaling_f    !average cloud fraction between cloud bottom and cloud top
++ REAL :: mapfac_scaling_f    !squared map factor, should be mapfac_x * mapfax_y
++                             !but the param is a rough approximation anyway 
++ INTEGER :: kbtm, ktop  ! cloud bottom index, top index
++
++ REAL, PARAMETER:: baseArea=1296. ! base-case area, dx = 36 km
++
++ INTEGER :: i,k,j
++
++!-----------------------------------------------------------------
++
++!Initialize scaling factors 
++ cldfra_scaling_f=1. !cloud fraction = 1
++ mapfac_scaling_f=1. !no grid distortion
++!Initialize other local variables
++ ktop = -1
++ kbtm = -1
++ zkm = 0.
++
++ total_flashrate( ips:ipe,jps:jpe ) = 0.
++
++!Grid area in km, assuming no projection distortion for now
++ dA = dx*dy/1E6
++
++! Compute flash rates from AGL cloud top height 
++ jloop: DO j=jps,jpe
++    iloop: DO i=ips,ipe
++        IF (shall(i,j) .le. 0.5) THEN ! deep convection
++          ! Cloud top level ktop directly from KF-CuP
++          ktop=nint(htop(i,j))
++          ! Look for cloud bottom level kbtm (used here to compute the average cloud fraction)
++          k = kps
++          DO WHILE( cldfra_cup(i,k,j) .le. 0.01 .and. k .le. ktop )
++            k = k+1
++          ENDDO
++          kbtm = k
++          IF ( (ktop - kbtm) > 0 ) THEN !cloud depth is > 0
++            cldfra_scaling_f=SUM(cldfra_cup(i,kbtm:ktop,j))/REAL(ktop-kbtm+1) ! "cloud-wide" average cloud fraction
++            IF ( t(i,ktop,j) .lt. 273.15 .and. &
++              ktop .ge. kps .and. ktop .le. kpe ) THEN              ! Cloud top must freeze for lightning
++              zkm = ( z(i,ktop,j) - ht(i,j) )/1E3 + cldtop_adjustment    ! Compute AGL height in km
++              IF ( zkm .gt. 0. ) THEN                                         ! Must be above ground
++                IF ( xland(i,j) .lt. 1.5 ) THEN
++                  total_flashrate(i,j) = 3.44E-5 * (zkm**4.9) /60.            ! Continental equation
++                ELSE
++                  total_flashrate(i,j) = 6.57E-6 * (zkm**4.9) /60.            ! Marine equation (Michalon 99)
++                ENDIF
++! Scale flashrate by cloud fraction (the parameterization above assumes that the cloud fills the whole
++! grid)
++              total_flashrate(i,j) = total_flashrate(i,j) * cldfra_scaling_f 
++! Scale flashrate by areal ratio (the parameterization above is cell-area dependent). Take into account map projection distortions
++              mapfac_scaling_f = 1.0 / (msft(i,j) * msft(i,j))
++              total_flashrate(i,j) = total_flashrate(i,j) * dA/baseArea * mapfac_scaling_f  
++              ENDIF ! zkm .gt. 0.
++            ENDIF ! t(i,ktop,j) .lt. 273.15
++          ENDIF ! (ktop - kbtm) > 0
++        ENDIF ! shall(i,j) .le. 0.5
++    ENDDO iloop
++ ENDDO jloop
++
++ END SUBROUTINE ltng_cpmpr92z_cup
++!lm
+ 
+  END MODULE module_ltng_cpmpr92z
+diff --git a/phys/module_ltng_iccg.F b/phys/module_ltng_iccg.F
+index d038f4a..5c6e031 100644
+--- a/phys/module_ltng_iccg.F
++++ b/phys/module_ltng_iccg.F
+@@ -11,7 +11,8 @@
+ ! Contact: J. Wong <johnwong@ucar.edu>
+ !
+ !**********************************************************************
+-
++!
++!lm Louis Marelle 2016/5/17: Add lightning parameterization for KF-CuP cumuli
+ 
+  MODULE module_ltng_iccg
+  CONTAINS
+@@ -250,6 +251,93 @@
+  END SUBROUTINE iccg_pr93
+ 
+ 
++!lm Add a subroutine for iccg with KF-CuP cumuli
++ SUBROUTINE iccg_pr93_cup( &
++                            cldtop_adjustment, t_phy, z,         &
++                          ! Additional inputs from KF-CuP
++                            htop, &
++                            shall, &
++                          ! Order dependent args for domain, mem, and tile dims
++                            ids, ide, jds, jde, kds, kde,              &
++                            ims, ime, jms, jme, kms, kme,              &
++                            ips, ipe, jps, jpe, kps, kpe,              &
++                          ! Input
++                            total_flashrate,                           &
++                          ! Output
++                            ic_flashrate, cg_flashrate                 &
++                        )
++!-----------------------------------------------------------------
++ IMPLICIT NONE
++!-----------------------------------------------------------------
++! Inputs
++ REAL,                                            INTENT(IN   ) :: cldtop_adjustment
++ REAL,    DIMENSION( ims:ime, kms:kme, jms:jme ), INTENT(IN   ) :: t_phy, z
++! Additional inputs from KF-CuP
++ REAL, DIMENSION( ims:ime,          jms:jme ), INTENT(IN   ) :: htop ! cloud top level
++ REAL, DIMENSION( ims:ime,          jms:jme ), INTENT(IN   ) :: shall ! flag indicating convection status 
++                                                                      ! (shallow, deep, none)
++
++! Order dependent args for domain, mem, and tile dims
++ INTEGER, INTENT(IN   )    ::       ids,ide, jds,jde, kds,kde
++ INTEGER, INTENT(IN   )    ::       ims,ime, jms,jme, kms,kme
++ INTEGER, INTENT(IN   )    ::       ips,ipe, jps,jpe, kps,kpe
++
++! Primary inputs and outpus
++ REAL,    DIMENSION( ims:ime,          jms:jme ), INTENT(IN   ) :: total_flashrate   
++ REAL,    DIMENSION( ims:ime,          jms:jme ), INTENT(  OUT) :: ic_flashrate, cg_flashrate
++
++! Local variables
++ INTEGER :: kfreeze
++
++ INTEGER :: i,j,k
++ REAL    :: ratio, cgfrac, depth !cloud depth in km
++
++ REAL, PARAMETER :: dH_min = 5.5 !min cloud depth in km
++ REAL, PARAMETER :: dH_max = 14. !max cloud depth in km
++
++! Coefficients from Price and Rind 1993
++ REAL, PARAMETER :: coef_A = 0.021
++ REAL, PARAMETER :: coef_B = -0.648
++ REAL, PARAMETER :: coef_C = 7.493
++ REAL, PARAMETER :: coef_D = -36.54
++ REAL, PARAMETER :: coef_E = 63.09
++!-----------------------------------------------------------------
++
++ ic_flashrate(ips:ipe,jps:jpe) = 0.
++ cg_flashrate(ips:ipe,jps:jpe) = 0.
++
++ jloop: DO j=jps,jpe
++    iloop: DO i=ips,ipe
++      IF ( total_flashrate(i,j) .gt. 0.) THEN ! only do param if flashes occur
++        IF (shall(i,j) .gt. 0.5) then ! Only do param if deep convection occurs (should be redundant with the flashrate test)
++          depth = -1.
++        ELSE
++          ! Look for the freezing level in cloud
++           kfreeze = nint(htop(i,j))
++          DO WHILE ( t_phy(i,kfreeze,j) .le. 273.15 .and. kfreeze > 1) ! kfreeze can reach 0 if the ground is below freezing temp
++            kfreeze = kfreeze - 1
++          ENDDO
++          depth = ( z(i,nint(htop(i,j)),j) - z(i,kfreeze,j) ) * 1E-3 + cldtop_adjustment ! compute cloud depth (km)
++        ENDIF
++
++        IF (depth .gt. 0.) THEN
++          depth = max( dH_min, min( dH_max, depth )) ! keep cloud depth between these bounds
++
++          ! Price and Rind (1993) parameterization
++          ratio = (((coef_A*depth+coef_B )*depth+coef_C)*depth+coef_D)*depth+coef_E
++          cgfrac = 1./(ratio+1.)
++
++          cg_flashrate(i,j) = total_flashrate(i,j) * cgfrac
++          ic_flashrate(i,j) = total_flashrate(i,j) - cg_flashrate(i,j)
++        ENDIF ! shall(i,j) .gt. 0.5
++      ENDIF ! total_flashrate(i,j) .gt. 0.
++    ENDDO iloop
++ ENDDO jloop
++
++ END SUBROUTINE iccg_pr93_cup
++!lm
++
++
+ !**********************************************************************
+ !
+ ! Gridded user inputs
+-- 
+2.31.1
+

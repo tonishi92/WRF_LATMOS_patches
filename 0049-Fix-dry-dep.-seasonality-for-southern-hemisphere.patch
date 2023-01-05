@@ -1,0 +1,27 @@
+From 6be13397153228dec706c0f1bf5c1bef258338be Mon Sep 17 00:00:00 2001
+From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
+Date: Mon, 11 Apr 2022 18:13:57 +0200
+Subject: [PATCH 49/70] Fix dry dep. seasonality for southern hemisphere
+
+In chem/module_dep_simple.F, correct the dates for southern hemisphere spring
+and summer introduced previously.
+---
+ chem/module_dep_simple.F | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/chem/module_dep_simple.F b/chem/module_dep_simple.F
+index 6750483..4a98c66 100755
+--- a/chem/module_dep_simple.F
++++ b/chem/module_dep_simple.F
+@@ -201,7 +201,7 @@ tile_lon_loop : &
+                     iseason = 1
+                  endif
+                else ! Southern Hemisphere case
+-                 if( julday > 270 .or. julday < 90 ) then
++                 if( julday > 90 .and. julday < 270 ) then
+                     iseason = 2
+                     CALL wrf_debug(15,'setting iseason to 2')
+                  else
+-- 
+2.31.1
+
