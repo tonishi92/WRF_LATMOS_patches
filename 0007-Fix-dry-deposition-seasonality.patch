@@ -1,7 +1,7 @@
 From b1c91b9c9a24dbe4970a9d3d53e93c18aa531695 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Mon, 15 Oct 2018 18:32:58 +0200
-Subject: [PATCH 07/70] Fix dry deposition seasonality
+Subject: [PATCH 07/71] Fix dry deposition seasonality
 
 In chem/module_dep_simple.F, forces iseason to category 4 (winter, snow on
 ground and subfreezing) if snow height >= 10 cm or if the land type is ice.

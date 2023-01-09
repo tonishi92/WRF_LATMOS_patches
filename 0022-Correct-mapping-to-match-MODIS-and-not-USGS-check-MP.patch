@@ -1,7 +1,7 @@
 From 0abe7760aa8cb18bc71b566405d05a3c1d42fca5 Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Wed, 28 Sep 2022 12:46:24 +0200
-Subject: [PATCH 22/70] Correct mapping to match MODIS and not USGS (check
+Subject: [PATCH 22/71] Correct mapping to match MODIS and not USGS (check
  MPTABLE.TBL)
 
 TYPE : debug

@@ -1,7 +1,7 @@
 From adfb50c4862cd2ad7a53bf1d754c5df999590951 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Tue, 17 May 2016 18:40:45 +0200
-Subject: [PATCH 09/70] Add lightning parameterization for KF-CuP cumuli
+Subject: [PATCH 09/71] Add lightning parameterization for KF-CuP cumuli
 
 Add routines for lightning parameterization with KF-CuP cumuli in phys/
 Add cases in chem_init and lightning_init to constrain the choice of

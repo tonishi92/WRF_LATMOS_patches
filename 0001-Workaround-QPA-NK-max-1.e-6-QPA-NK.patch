@@ -1,7 +1,7 @@
 From dbd45ac8c9604745bbb8e064acc7bc1aca59b4bd Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Thu, 12 May 2022 12:27:00 +0200
-Subject: [PATCH 01/70] Workaround QPA(NK) = max(1.e-6,QPA(NK))
+Subject: [PATCH 01/71] Workaround QPA(NK) = max(1.e-6,QPA(NK))
 
 Keep p and th inside the bound
 IPTB and ITHTB are kept within [1,220] and [1,250], respectively

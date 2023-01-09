@@ -1,7 +1,7 @@
 From 8284a548262f1bb52e729ecb1cf87b9d07e0c3a9 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Wed, 17 Oct 2018 16:56:35 +0200
-Subject: [PATCH 08/70] KF-CuP/radiation and KF-CuP/cloud interactions
+Subject: [PATCH 08/71] KF-CuP/radiation and KF-CuP/cloud interactions
 
 Adds cldfra_dp and cldfra_sh outputs from KF-CuP, the cloud fractions
 associated with deep and shalow convection. Calculations are based on

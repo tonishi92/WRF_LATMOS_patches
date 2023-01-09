@@ -1,7 +1,7 @@
 From 6893e740fe5e50b11e415fae969b37596d6df571 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Mon, 22 Oct 2018 12:16:59 +0200
-Subject: [PATCH 12/70] Add aerosol sedimentation aloft in MOSAIC
+Subject: [PATCH 12/71] Add aerosol sedimentation aloft in MOSAIC
 
 Add a new module in chem/, module_mosaic_settling, calculating sedimentation
 above the lowest model level for MOSAIC aerosols. The released model only

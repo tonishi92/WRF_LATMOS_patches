@@ -1,7 +1,7 @@
 From cbd445917b2a3595f17f7888b565e1e7742ef78a Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Thu, 18 Feb 2021 11:55:12 +0100
-Subject: [PATCH 13/70] Synchronize the adaptive time step with radt
+Subject: [PATCH 13/71] Synchronize the adaptive time step with radt
 
 In dyn_em/adapt_timestep_em.F, force the adaptive time step to always fall
 exactly on the expected radiation call time. The radiation code expects to be

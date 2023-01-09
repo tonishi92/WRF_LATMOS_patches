@@ -1,7 +1,7 @@
 From c460ea13e442ef2233b0d9c0d0e771abbb5a6319 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Wed, 14 Dec 2022 12:57:31 +0100
-Subject: [PATCH 69/70] [Update] Update to "Fix chem initialization bugs in
+Subject: [PATCH 69/71] [Update] Update to "Fix chem initialization bugs in
  MOZART and MOSAIC"
 
 A fix is applied to initialize a diagnostic array "irr_rates" for all chem_opt.

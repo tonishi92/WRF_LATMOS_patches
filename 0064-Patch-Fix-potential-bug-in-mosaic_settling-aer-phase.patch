@@ -1,7 +1,7 @@
 From cb0e71f74a05837ad93e74ea57bc96187991ba3a Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 13 Dec 2022 15:21:35 +0100
-Subject: [PATCH 64/70] (Patch) Fix potential bug in mosaic_settling aer phase
+Subject: [PATCH 64/71] (Patch) Fix potential bug in mosaic_settling aer phase
 
 Description:
 In module_mosaic_settling, set the aerosol interstitial phase to 1

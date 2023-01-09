@@ -1,7 +1,7 @@
 From 6be13397153228dec706c0f1bf5c1bef258338be Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Mon, 11 Apr 2022 18:13:57 +0200
-Subject: [PATCH 49/70] Fix dry dep. seasonality for southern hemisphere
+Subject: [PATCH 49/71] Fix dry dep. seasonality for southern hemisphere
 
 In chem/module_dep_simple.F, correct the dates for southern hemisphere spring
 and summer introduced previously.

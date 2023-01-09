@@ -1,7 +1,7 @@
 From 1708dbcd136e69cb442c3398d880331dda0aaab9 Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Tue, 27 Sep 2022 08:56:32 +0200
-Subject: [PATCH 21/70] Sea Salt Flux calculation in
+Subject: [PATCH 21/71] Sea Salt Flux calculation in
  chem/module_mosaic_addemiss.F
 
 TYPE : Enhancement

@@ -1,7 +1,7 @@
 From 121aa951088904a868d979a09b1038b2c4fb6966 Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Tue, 22 Nov 2022 15:17:05 +0100
-Subject: [PATCH 38/70] (Commit Update) irr_rates commented out: diagnotic
+Subject: [PATCH 38/71] (Commit Update) irr_rates commented out: diagnotic
  variable removed
 
 TYPE : Updates

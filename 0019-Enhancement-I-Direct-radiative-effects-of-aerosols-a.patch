@@ -1,7 +1,7 @@
 From 6ce4c68d45022d638c78c35ec227f03c8f6208a4 Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Fri, 23 Sep 2022 10:56:56 +0200
-Subject: [PATCH 19/70] Enhancement I : Direct radiative effects of aerosols
+Subject: [PATCH 19/71] Enhancement I : Direct radiative effects of aerosols
  and ozone Enhancement II: Aerosol optical properties without effects of BC,
  SO4, NO3, NH4 or OC
 

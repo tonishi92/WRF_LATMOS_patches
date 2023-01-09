@@ -1,7 +1,7 @@
 From 21b6b2552d03ca4204575555113d819d75ec2754 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Mon, 12 Dec 2022 12:21:27 +0100
-Subject: [PATCH 53/70] New UV albedo over snow+ice for FTUV+TUV photolysis
+Subject: [PATCH 53/71] New UV albedo over snow+ice for FTUV+TUV photolysis
 
 Uses a higher UV-albedo over snow- and ice-covered surfaces in TUV and FTUV
 photolysis. The snow/ice albedo value is taken as 0.85, and is weighted by the

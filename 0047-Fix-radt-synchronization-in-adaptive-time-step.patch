@@ -1,7 +1,7 @@
 From 2eca8bd52a51fd74e0be362f5be6fd2c1951b872 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Wed, 8 Jun 2022 18:30:47 +0200
-Subject: [PATCH 47/70] Fix radt synchronization in adaptive time step
+Subject: [PATCH 47/71] Fix radt synchronization in adaptive time step
 
 In dyn_em/adapt_timestep_em.F, update the code synchronizing the radiative time
 step to the adaptive time step, in order to remain consistent with changes in

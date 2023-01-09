@@ -1,7 +1,7 @@
 From d86538d2ad87774447d49acd019887c8c5d3f239 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Thu, 28 Jul 2022 23:11:51 +0200
-Subject: [PATCH 60/70] Calculate cloud fraction from grid-scale microphysics
+Subject: [PATCH 60/71] Calculate cloud fraction from grid-scale microphysics
 
 Add a variable cldfra_ls, containing the cloud fraction from large-scale
 microphysics (grid-scale clouds). If cu_rad_feedback is off, cldfra_ls

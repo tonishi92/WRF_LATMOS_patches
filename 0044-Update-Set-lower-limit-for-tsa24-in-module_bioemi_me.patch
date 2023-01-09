@@ -1,7 +1,7 @@
 From ccc2669f88fb06360262fc60cb3b25e919092294 Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Thu, 24 Nov 2022 09:06:08 +0100
-Subject: [PATCH 44/70] (Update) Set lower limit for tsa24 in
+Subject: [PATCH 44/71] (Update) Set lower limit for tsa24 in
  module_bioemi_megan2.F
 
 TYPE : Update

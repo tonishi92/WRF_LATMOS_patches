@@ -1,7 +1,7 @@
 From 1894c2be2f2721be4151617c40bb079612dd9b3b Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Tue, 4 Oct 2022 11:45:58 +0200
-Subject: [PATCH 67/70] Fix chem initialization bugs in MOZART and MOSAIC
+Subject: [PATCH 67/71] Fix chem initialization bugs in MOZART and MOSAIC
 
 Add initializations for several arrays in MOZART and MOSAIC in chem, in
 the aerosol chemistry code, in the profile initialization for chemical

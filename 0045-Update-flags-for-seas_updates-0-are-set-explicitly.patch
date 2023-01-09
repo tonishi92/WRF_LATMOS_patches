@@ -1,7 +1,7 @@
 From de6a0800395f3c7d1f0cf1fbf80393edb1350632 Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Thu, 24 Nov 2022 09:14:40 +0100
-Subject: [PATCH 45/70] (Update) flags for seas_updates=0 are set explicitly.
+Subject: [PATCH 45/71] (Update) flags for seas_updates=0 are set explicitly.
 
 TYPE : Update
 

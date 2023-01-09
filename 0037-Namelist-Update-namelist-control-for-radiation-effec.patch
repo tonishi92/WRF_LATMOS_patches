@@ -1,7 +1,7 @@
 From 464e0cd7340fa9e976647145dbcbbdfa82ae4772 Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Tue, 22 Nov 2022 14:07:25 +0100
-Subject: [PATCH 37/70] (Namelist Update) namelist control for radiation effect
+Subject: [PATCH 37/71] (Namelist Update) namelist control for radiation effect
  calculations
 
 TYPE : Updates
