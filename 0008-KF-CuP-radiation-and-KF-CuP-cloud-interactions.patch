@@ -1,7 +1,7 @@
-From 8284a548262f1bb52e729ecb1cf87b9d07e0c3a9 Mon Sep 17 00:00:00 2001
+From 7d2cf6a72af1027124e7ac66af3d3edbd68ab012 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Wed, 17 Oct 2018 16:56:35 +0200
-Subject: [PATCH 08/71] KF-CuP/radiation and KF-CuP/cloud interactions
+Subject: [PATCH 08/50] KF-CuP/radiation and KF-CuP/cloud interactions
 
 Adds cldfra_dp and cldfra_sh outputs from KF-CuP, the cloud fractions
 associated with deep and shalow convection. Calculations are based on
@@ -19,7 +19,7 @@ to happen for KF-CuP also, when icloud=1 is selected in the namelist.
  3 files changed, 91 insertions(+), 1 deletion(-)
 
 diff --git a/phys/module_cu_kfcup.F b/phys/module_cu_kfcup.F
-index 26fedc5..96c82f2 100644
+index 251e8603..cbc6b066 100644
 --- a/phys/module_cu_kfcup.F
 +++ b/phys/module_cu_kfcup.F
 @@ -55,6 +55,8 @@ MODULE module_cu_kfcup
@@ -223,7 +223,7 @@ index 26fedc5..96c82f2 100644
  !...COMPUTE HYDROMETEOR TENDENCIES AS IS DONE FOR T, QV...
  !     
 diff --git a/phys/module_cumulus_driver.F b/phys/module_cumulus_driver.F
-index c6d3b1f..ea56aff 100644
+index c6d3b1f3..ea56aff4 100644
 --- a/phys/module_cumulus_driver.F
 +++ b/phys/module_cumulus_driver.F
 @@ -1572,6 +1572,9 @@ CONTAINS
@@ -237,7 +237,7 @@ index c6d3b1f..ea56aff 100644
          
          
 diff --git a/phys/module_physics_init.F b/phys/module_physics_init.F
-index 8725908..4c9b954 100644
+index 8725908b..4c9b9541 100644
 --- a/phys/module_physics_init.F
 +++ b/phys/module_physics_init.F
 @@ -1120,7 +1120,8 @@ CHARACTER(LEN=8) :: name

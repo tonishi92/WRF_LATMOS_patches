@@ -1,7 +1,7 @@
-From 1c9fc2e55aa90b40814beb681bcdd7ea8aa0e5b8 Mon Sep 17 00:00:00 2001
+From 995ea9a3b7705ca6ecae41bada3efaf348366890 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Fri, 19 Oct 2018 13:22:34 +0200
-Subject: [PATCH 11/71] Correct rate constants for SAPRC99 mechanisms
+Subject: [PATCH 11/50] Correct rate constants for SAPRC99 mechanisms
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -21,7 +21,7 @@ chemical mechanism for VOC reactivity assessment
  3 files changed, 16 insertions(+), 29 deletions(-)
 
 diff --git a/chem/KPP/mechanisms/saprc99/saprc99.eqn b/chem/KPP/mechanisms/saprc99/saprc99.eqn
-index 6bdfaf9..d4f83fa 100755
+index 6bdfaf93..d4f83fa6 100755
 --- a/chem/KPP/mechanisms/saprc99/saprc99.eqn
 +++ b/chem/KPP/mechanisms/saprc99/saprc99.eqn
 @@ -363,16 +363,17 @@
@@ -48,7 +48,7 @@ index 6bdfaf9..d4f83fa 100755
   0.474RCHO + 0.276PROD2 : ARR(1.83D-11,-449.0_dp,0.0_dp,TEMP) ;
  {237} SESQ + O3 = 0.567OH + 0.033HO2 +
 diff --git a/chem/KPP/mechanisms/saprc99_mosaic_4bin_vbs2/saprc99_mosaic_4bin_vbs2.eqn b/chem/KPP/mechanisms/saprc99_mosaic_4bin_vbs2/saprc99_mosaic_4bin_vbs2.eqn
-index edae9ae..51e22e8 100755
+index edae9aec..51e22e89 100755
 --- a/chem/KPP/mechanisms/saprc99_mosaic_4bin_vbs2/saprc99_mosaic_4bin_vbs2.eqn
 +++ b/chem/KPP/mechanisms/saprc99_mosaic_4bin_vbs2/saprc99_mosaic_4bin_vbs2.eqn
 @@ -370,23 +370,16 @@
@@ -81,7 +81,7 @@ index edae9ae..51e22e8 100755
   {231} ALK5 + OH = ant1_c + ALK5 + OH              : Keff(1.112D-11,52.0_dp,0.0_dp,TEMP,nume,den,0.064_dp,0.128_dp) ;
   {232} OLE1 + OH = ant1_c + OLE1 + OH              : Keff(7.095D-12,-451.0_dp,0.0_dp,TEMP,nume,den,0.0002_dp,0.0012_dp) ;
 diff --git a/chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.eqn b/chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.eqn
-index ce75986..9f3906a 100755
+index ce75986a..9f3906a4 100755
 --- a/chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.eqn
 +++ b/chem/KPP/mechanisms/saprc99_mosaic_8bin_vbs2_aq/saprc99_mosaic_8bin_vbs2_aq.eqn
 @@ -370,23 +370,16 @@

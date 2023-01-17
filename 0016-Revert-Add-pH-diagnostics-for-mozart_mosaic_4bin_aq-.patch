@@ -1,7 +1,7 @@
-From 2a3350afb20e3837c7a65f60e006bdf656900d07 Mon Sep 17 00:00:00 2001
+From 7e70d3badc523602a4c1112174b0eff2a0fbd421 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Mon, 14 Mar 2022 15:35:24 +0100
-Subject: [PATCH 16/71] Revert "Add pH diagnostics for mozart_mosaic_4bin_aq
+Subject: [PATCH 16/50] Revert "Add pH diagnostics for mozart_mosaic_4bin_aq
  chemistry (#1342)"
 
 This reverts commit 9f9bc615731130366eaacef6ad1d3ed7742be0a0.
@@ -17,7 +17,7 @@ This reverts commit 9f9bc615731130366eaacef6ad1d3ed7742be0a0.
  8 files changed, 8 insertions(+), 57 deletions(-)
 
 diff --git a/Registry/registry.chem b/Registry/registry.chem
-index 725c9d1..a4c7824 100644
+index 906e07ef..c5f0f7a3 100644
 --- a/Registry/registry.chem
 +++ b/Registry/registry.chem
 @@ -18,12 +18,6 @@ state    real    QC_B4MP         ikj    misc        1         -      -        "Q
@@ -52,7 +52,7 @@ index 725c9d1..a4c7824 100644
  
  # dust and sea salt packages
 diff --git a/chem/aerosol_driver.F b/chem/aerosol_driver.F
-index 9b236c5..ce95602 100755
+index 9b236c5d..ce95602b 100755
 --- a/chem/aerosol_driver.F
 +++ b/chem/aerosol_driver.F
 @@ -16,7 +16,6 @@
@@ -84,7 +84,7 @@ index 9b236c5..ce95602 100755
              ims,ime, jms,jme, kms,kme,                                  &
              its,ite, jts,jte, kts,kte                                   )
 diff --git a/chem/chem_driver.F b/chem/chem_driver.F
-index 40b54b4..b76be98 100755
+index 40b54b42..b76be98e 100755
 --- a/chem/chem_driver.F
 +++ b/chem/chem_driver.F
 @@ -1556,7 +1556,6 @@ if ( cam_mam_aerosols ) &
@@ -104,7 +104,7 @@ index 40b54b4..b76be98 100755
                ims,ime, jms,jme, kms,kme,                                              &
                its,ite,jts,jte,kts,kte                                                 )
 diff --git a/chem/cloudchem_driver.F b/chem/cloudchem_driver.F
-index c128c90..d3116bf 100644
+index c128c90f..d3116bf2 100644
 --- a/chem/cloudchem_driver.F
 +++ b/chem/cloudchem_driver.F
 @@ -18,7 +18,6 @@
@@ -135,7 +135,7 @@ index c128c90..d3116bf 100644
              ids,ide, jds,jde, kds,kde,                &
              ims,ime, jms,jme, kms,kme,                &
 diff --git a/chem/module_chem_cup.F b/chem/module_chem_cup.F
-index f376751..3012ae1 100644
+index f376751c..3012ae18 100644
 --- a/chem/module_chem_cup.F
 +++ b/chem/module_chem_cup.F
 @@ -3205,7 +3205,6 @@ dndraft_mixratio_k_loop: &
@@ -156,7 +156,7 @@ index f376751..3012ae1 100644
              1,1,  1,1,  kts,kte,  &
              1,1,  1,1,  kts,kte,  &
 diff --git a/chem/module_mosaic_cloudchem.F b/chem/module_mosaic_cloudchem.F
-index 80b0b66..351eaf8 100644
+index 80b0b662..351eaf83 100644
 --- a/chem/module_mosaic_cloudchem.F
 +++ b/chem/module_mosaic_cloudchem.F
 @@ -33,7 +33,7 @@
@@ -203,7 +203,7 @@ index 80b0b66..351eaf8 100644
  3800	continue
  
 diff --git a/chem/module_mosaic_driver.F b/chem/module_mosaic_driver.F
-index 2a96444..c8d8c29 100644
+index 2a964445..c8d8c294 100644
 --- a/chem/module_mosaic_driver.F
 +++ b/chem/module_mosaic_driver.F
 @@ -135,7 +135,6 @@
@@ -237,7 +237,7 @@ index 2a96444..c8d8c29 100644
  !  note units for aerosol is now ug/m3
  
 diff --git a/chem/module_mosaic_therm.F b/chem/module_mosaic_therm.F
-index 72f4a66..339e4ec 100644
+index 72f4a667..339e4ec2 100644
 --- a/chem/module_mosaic_therm.F
 +++ b/chem/module_mosaic_therm.F
 @@ -90,9 +90,8 @@

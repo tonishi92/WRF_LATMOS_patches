@@ -1,7 +1,7 @@
-From cbd445917b2a3595f17f7888b565e1e7742ef78a Mon Sep 17 00:00:00 2001
-From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
-Date: Thu, 18 Feb 2021 11:55:12 +0100
-Subject: [PATCH 13/71] Synchronize the adaptive time step with radt
+From 4801d4a2dc27ae98ca82085f1601663dea127a69 Mon Sep 17 00:00:00 2001
+From: tonishi92 <tatsuo.onishi@gmail.com>
+Date: Tue, 17 Jan 2023 12:44:16 +0100
+Subject: [PATCH 13/50] Synchronize the adaptive time step with radt
 
 In dyn_em/adapt_timestep_em.F, force the adaptive time step to always fall
 exactly on the expected radiation call time. The radiation code expects to be
@@ -12,7 +12,7 @@ time when adaptive time step was used.
  1 file changed, 53 insertions(+), 1 deletion(-)
 
 diff --git a/dyn_em/adapt_timestep_em.F b/dyn_em/adapt_timestep_em.F
-index 2de49b1..1182fa9 100644
+index 2de49b12..b0147e02 100644
 --- a/dyn_em/adapt_timestep_em.F
 +++ b/dyn_em/adapt_timestep_em.F
 @@ -47,6 +47,11 @@ RECURSIVE SUBROUTINE adapt_timestep(grid, config_flags)
@@ -89,7 +89,7 @@ index 2de49b1..1182fa9 100644
 +             (radt_sec) ) * (radt_sec)
 +        CALL WRFU_TimeIntervalSet(tmpTimeInterval, S=rad_time)
 +        dtInterval = tmpTimeInterval - &
-+             (domain_get_current_time(grid) - domain_get_sim_start_time(grid))
++             (domain_get_current_time(grid) - domain_get_start_time(grid))
 +
 +        use_last2 = .TRUE.
 +        grid%stepping_to_time = .TRUE.

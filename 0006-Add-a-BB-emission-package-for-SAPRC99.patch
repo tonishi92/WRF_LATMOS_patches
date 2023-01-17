@@ -1,7 +1,7 @@
-From f565b3293cc777a0e2adf2eb8c11398cd010af76 Mon Sep 17 00:00:00 2001
+From 2ec2c663c68b1329d7654b0d7c2543813e51ebcc Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Tue, 9 Oct 2018 15:12:00 +0200
-Subject: [PATCH 06/71] Add a BB emission package for SAPRC99
+Subject: [PATCH 06/50] Add a BB emission package for SAPRC99
 
 Adds a biomass burning (BB) emission package for SAPRC99 mechanisms,
 BIOMASSB_SAPRC (biomass_burn_opt = 6 in &chem), and couples it to the
@@ -21,7 +21,7 @@ through emiss_ant(p_e_orgj_a) and emiss_ant(p_e_orgj_bb)
  5 files changed, 205 insertions(+), 27 deletions(-)
 
 diff --git a/Registry/registry.chem b/Registry/registry.chem
-index 2e8e820..9e99a48 100644
+index 2e8e820c..9e99a48e 100644
 --- a/Registry/registry.chem
 +++ b/Registry/registry.chem
 @@ -413,6 +413,28 @@ state    real  ebu_hcooh    ikjf     ebu           1         Z        -      "eb
@@ -93,7 +93,7 @@ index 2e8e820..9e99a48 100644
  package  do_mozart_ph_diag    mozart_ph_diag==1      -             state:ph_cw,ph_aer01,ph_aer02,ph_aer03,ph_aer04
  
 diff --git a/chem/emissions_driver.F b/chem/emissions_driver.F
-index 9c4c8cb..2222b74 100644
+index 9c4c8cb1..2222b74e 100644
 --- a/chem/emissions_driver.F
 +++ b/chem/emissions_driver.F
 @@ -631,6 +631,7 @@ CONTAINS
@@ -205,7 +205,7 @@ index 9c4c8cb..2222b74 100644
         do j=jts,jte
            do i=its,ite
 diff --git a/chem/module_add_emiss_burn.F b/chem/module_add_emiss_burn.F
-index 76a33a8..722fc51 100644
+index 76a33a80..722fc51f 100644
 --- a/chem/module_add_emiss_burn.F
 +++ b/chem/module_add_emiss_burn.F
 @@ -294,8 +294,7 @@ CONTAINS
@@ -273,7 +273,7 @@ index 76a33a8..722fc51 100644
         call wrf_debug(15,'nothing done with burn emissions for chem array')
      END SELECT emiss_select
 diff --git a/chem/module_mosaic_addemiss.F b/chem/module_mosaic_addemiss.F
-index 0681ac3..8b7b875 100644
+index 0681ac36..8b7b875b 100644
 --- a/chem/module_mosaic_addemiss.F
 +++ b/chem/module_mosaic_addemiss.F
 @@ -370,7 +370,7 @@ real, save :: fr8b_bburn_mosaic(8) = &
@@ -305,7 +305,7 @@ index 0681ac3..8b7b875 100644
              END SELECT  chem_select_3 
   
 diff --git a/chem/module_plumerise1.F b/chem/module_plumerise1.F
-index 5e58a97..6f1a43a 100644
+index 5e58a97c..6f1a43a4 100644
 --- a/chem/module_plumerise1.F
 +++ b/chem/module_plumerise1.F
 @@ -199,6 +199,51 @@ subroutine plumerise_driver (id,ktau,dtstep,                           &

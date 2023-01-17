@@ -1,7 +1,7 @@
-From 58fc1d7bf7bad3a179cafc51ebfddc5da2226f10 Mon Sep 17 00:00:00 2001
+From f6e961425a0dfd1a5f684535ceb8bfde93bcab8b Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Mon, 28 Feb 2022 17:16:15 +0100
-Subject: [PATCH 15/71] Update MOSAIC aerosol sumpm
+Subject: [PATCH 15/50] Update MOSAIC aerosol sumpm
 
 In chem/module_mosaic_sumpm.F, remove the VBS species from the
 calculation of PM for MOSAIC mechanisms without VBS.
@@ -10,7 +10,7 @@ calculation of PM for MOSAIC mechanisms without VBS.
  1 file changed, 2 insertions(+), 154 deletions(-)
 
 diff --git a/chem/module_mosaic_sumpm.F b/chem/module_mosaic_sumpm.F
-index c35cc0b..441f5ad 100644
+index c35cc0b9..441f5ad4 100644
 --- a/chem/module_mosaic_sumpm.F
 +++ b/chem/module_mosaic_sumpm.F
 @@ -169,85 +169,7 @@

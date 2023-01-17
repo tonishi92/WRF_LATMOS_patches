@@ -1,0 +1,127 @@
+From 232e14e838a129a6de4478230b3f8f03d17e9854 Mon Sep 17 00:00:00 2001
+From: tonishi92 <tatsuo.onishi@gmail.com>
+Date: Mon, 12 Dec 2022 23:20:16 +0100
+Subject: [PATCH 42/50] Add CLT, a diagnosis for total cloud fraction
+
+Description:
+   Adds a diagnosis for CLT, the total 2D cloud fraction, calculated by
+   max-random overlap.
+
+SOURCE : L. Marelle
+
+Modified files:
+---
+ Registry/Registry.EM_COMMON         |  1 +
+ dyn_em/module_first_rk_step_part1.F |  1 +
+ phys/module_radiation_driver.F      | 43 +++++++++++++++++++++++++++++
+ 3 files changed, 45 insertions(+)
+
+diff --git a/Registry/Registry.EM_COMMON b/Registry/Registry.EM_COMMON
+index e32d6d72..7daa87e2 100644
+--- a/Registry/Registry.EM_COMMON
++++ b/Registry/Registry.EM_COMMON
+@@ -1353,6 +1353,7 @@ state   real    tstar          ij      misc         1         -      r        "T
+ state   real    lnterms        ikj     misc         1         -      r        "LNTERMS"        "Liquid+ice+1 ln term for cloud fraction" ""
+ state   real    lnint          ij      misc         1         -      r        "LNINT"          "Integrated ln term for cloud fraction" ""
+ #BSINGH -  adde CuP related variables -ENDS
++state   real    CLT            ij      misc         1         -      rh       "CLT"            "Total cloud fraction"                  ""
+ 
+ 
+ # Other Misc State Variables                                            
+diff --git a/dyn_em/module_first_rk_step_part1.F b/dyn_em/module_first_rk_step_part1.F
+index 8af1add6..9476e180 100644
+--- a/dyn_em/module_first_rk_step_part1.F
++++ b/dyn_em/module_first_rk_step_part1.F
+@@ -362,6 +362,7 @@ BENCH_START(rad_driver_tim)
+      &        ,CLDFRA_CUP=grid%cldfra_cup                                 & !CuP, wig 1-Oct-2006
+      &        ,SHALL=grid%shall                                           & !CuP, wig 4-Feb-2008
+ !BSINGH - ENDS
++     &        ,clt=grid%clt                                               &
+             ! indexes
+      &        ,IDS=ids,IDE=ide, JDS=jds,JDE=jde, KDS=kds,KDE=kde          &
+      &        ,IMS=ims,IME=ime, JMS=jms,JME=jme, KMS=kms,KME=kme          &
+diff --git a/phys/module_radiation_driver.F b/phys/module_radiation_driver.F
+index d50ca120..1805ec00 100644
+--- a/phys/module_radiation_driver.F
++++ b/phys/module_radiation_driver.F
+@@ -78,6 +78,7 @@ CONTAINS
+               ,cubot,cutop,cldfra_cup                                     &
+               ,shall                                                      &
+               !BSINGH - ENDS
++              ,clt                                                        &
+             ! indexes
+               ,IDS,IDE, JDS,JDE, KDS,KDE                                  &
+               ,IMS,IME, JMS,JME, KMS,KME                                  &
+@@ -702,6 +703,7 @@ CONTAINS
+                                                            shall    !CuP, wig 4-Feb-2008
+    !BSINGH -ENDS
+ 
++   REAL, DIMENSION(ims:ime,jms:jme), INTENT(INOUT) :: clt
+ 
+    INTEGER, INTENT(IN   )  ::   julyr
+ !
+@@ -1227,6 +1229,8 @@ CONTAINS
+    REAL    ::    cldji,cldlji
+ !ckay
+    REAL, DIMENSION( ims:ime, kms:kme, jms:jme ) ::    cldfra_cu
++! Vertical dimension for total cloud fraction calculation
++   INTEGER :: dimz
+    REAL, DIMENSION( ims:ime, kms:kme, jms:jme ) ::    o3rad_0
+    INTEGER :: no_aer_ra_feedback
+ !------------------------------------------------------------------
+@@ -4390,6 +4394,16 @@ CONTAINS
+     END DO
+  END IF
+ 
++   IF ( PRESENT(CLDFRA) ) THEN
++     ! Calculate total cloud fraction clt by max-random overlap
++     dimz = kme - kms + 1
++     DO j = jts,jte
++       DO i = its,ite
++         CALL var_clt(cldfra(i,:,j), dimz, clt(i,j))
++       ENDDO
++     ENDDO
++   ENDIF
++
+    END SUBROUTINE radiation_driver
+ 
+    SUBROUTINE pre_radiation_driver ( grid, config_flags                   &
+@@ -6728,6 +6742,35 @@ END SUBROUTINE aer_p_int
+ 
+       END SUBROUTINE gt_aod
+ 
++!+---+-----------------------------------------------------------------+
++
++      SUBROUTINE var_clt(clfra, dz, clt)
++        ! Compute the total cloud following 'newmicro' from LMDZ using 1D
++        ! vertical column values
++        ! Adapted from Lluís Fita, https://doi.org/10.5194/gmd-12-1029-2019
++
++        IMPLICIT NONE
++
++        INTEGER, INTENT(IN)                                  :: dz
++        REAL, DIMENSION(dz), INTENT(IN)                      :: clfra
++        REAL, INTENT(OUT)                                    :: clt
++        ! Local
++        REAL                                                 :: zclear, zcloud, dclt
++        INTEGER                                              :: iz
++        REAL, PARAMETER                                      :: ZEPSEC = 1.0E-12
++
++        ! Calculate 1-column cloud fraction value
++        zclear = 1.0
++        zcloud = 0.0
++        DO iz=1,dz
++          zclear = zclear * (1.0-MAX(clfra(iz),zcloud)) / (1.0-MIN(zcloud,1.0-ZEPSEC))
++          dclt = 1.0 - zclear
++          zcloud = clfra(iz)
++        END DO
++        clt = dclt
++
++      END SUBROUTINE var_clt
++
+ !+---+-----------------------------------------------------------------+
+ 
+    subroutine  Add_multi_perturb_swrad_perturbations (perts_albedo, perts_aod, perts_angstrom, &
+-- 
+2.31.1
+

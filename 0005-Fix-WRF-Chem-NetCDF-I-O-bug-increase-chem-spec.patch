@@ -1,7 +1,7 @@
-From 4eadce45e368d41e8ae593b546d40603d6d33950 Mon Sep 17 00:00:00 2001
+From 500181553413ff53198d95c7575f688c8bb1f771 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Wed, 23 Feb 2022 16:54:11 +0100
-Subject: [PATCH 05/71] Fix WRF-Chem NetCDF I/O bug + increase chem spec
+Subject: [PATCH 05/50] Fix WRF-Chem NetCDF I/O bug + increase chem spec
 
 Fix a bug in external/io_netcdf/wrf_io.F90, where a #if(WRF_CHEM == 1)
 test fails setting MaxVars (max number of NetCDF variables in WRF I/O
@@ -14,7 +14,7 @@ chem/module_input_chem_data.F
  2 files changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/chem/module_input_chem_data.F b/chem/module_input_chem_data.F
-index be446ce..edc7ed0 100755
+index be446ce4..edc7ed07 100755
 --- a/chem/module_input_chem_data.F
 +++ b/chem/module_input_chem_data.F
 @@ -70,7 +70,7 @@ MODULE module_input_chem_data
@@ -27,7 +27,7 @@ index be446ce..edc7ed0 100755
      INTEGER, DIMENSION(logg)                     :: iref
  
 diff --git a/external/io_netcdf/wrf_io.F90 b/external/io_netcdf/wrf_io.F90
-index ec2162d..42a1a1f 100644
+index ec2162d2..42a1a1f9 100644
 --- a/external/io_netcdf/wrf_io.F90
 +++ b/external/io_netcdf/wrf_io.F90
 @@ -43,7 +43,7 @@ module wrf_data

@@ -1,7 +1,7 @@
-From adfb50c4862cd2ad7a53bf1d754c5df999590951 Mon Sep 17 00:00:00 2001
+From 880e49bdf8f8a2d18d162f74caceb784c81e9869 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Tue, 17 May 2016 18:40:45 +0200
-Subject: [PATCH 09/71] Add lightning parameterization for KF-CuP cumuli
+Subject: [PATCH 09/50] Add lightning parameterization for KF-CuP cumuli
 
 Add routines for lightning parameterization with KF-CuP cumuli in phys/
 Add cases in chem_init and lightning_init to constrain the choice of
@@ -18,7 +18,7 @@ options require further modifications to the code)
  6 files changed, 308 insertions(+), 8 deletions(-)
 
 diff --git a/chem/chemics_init.F b/chem/chemics_init.F
-index ded975d..bc7f852 100755
+index ded975d6..bc7f8529 100755
 --- a/chem/chemics_init.F
 +++ b/chem/chemics_init.F
 @@ -1,4 +1,6 @@
@@ -43,7 +43,7 @@ index ded975d..bc7f852 100755
     if ( config_flags%cu_physics == 5 .OR. config_flags%cu_physics == 3) then
     if ( config_flags%cu_diag == 0) then
 diff --git a/dyn_em/start_em.F b/dyn_em/start_em.F
-index 0192087..cf268c7 100644
+index 01920878..cf268c76 100644
 --- a/dyn_em/start_em.F
 +++ b/dyn_em/start_em.F
 @@ -1,5 +1,7 @@
@@ -66,7 +66,7 @@ index 0192087..cf268c7 100644
                      ! Order dependent args for domain, mem, and tile dims
                          ,ids=ids, ide=ide, jds=jds, jde=jde, kds=kds, kde=kde             &
 diff --git a/phys/module_diagnostics_driver.F b/phys/module_diagnostics_driver.F
-index b2ec19f..73047e8 100644
+index b2ec19fb..73047e87 100644
 --- a/phys/module_diagnostics_driver.F
 +++ b/phys/module_diagnostics_driver.F
 @@ -1,5 +1,7 @@
@@ -90,7 +90,7 @@ index b2ec19f..73047e8 100644
              config_flags%lightning_option,                     &
              config_flags%lightning_dt,                         &
 diff --git a/phys/module_lightning_driver.F b/phys/module_lightning_driver.F
-index 2a54bd0..3a305fc 100644
+index 2a54bd09..3a305fce 100644
 --- a/phys/module_lightning_driver.F
 +++ b/phys/module_lightning_driver.F
 @@ -13,6 +13,8 @@
@@ -252,7 +252,7 @@ index 2a54bd0..3a305fc 100644
  
      CASE( 4 ) iccg_select
 diff --git a/phys/module_ltng_cpmpr92z.F b/phys/module_ltng_cpmpr92z.F
-index f93f55c..68c46ae 100644
+index f93f55c3..68c46ae5 100644
 --- a/phys/module_ltng_cpmpr92z.F
 +++ b/phys/module_ltng_cpmpr92z.F
 @@ -12,6 +12,8 @@
@@ -399,7 +399,7 @@ index f93f55c..68c46ae 100644
  
   END MODULE module_ltng_cpmpr92z
 diff --git a/phys/module_ltng_iccg.F b/phys/module_ltng_iccg.F
-index d038f4a..5c6e031 100644
+index d038f4a0..5c6e0314 100644
 --- a/phys/module_ltng_iccg.F
 +++ b/phys/module_ltng_iccg.F
 @@ -11,7 +11,8 @@

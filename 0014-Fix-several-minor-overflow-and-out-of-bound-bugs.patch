@@ -1,7 +1,7 @@
-From 0915257c91713aa8ce6f39374859a12b8180b51c Mon Sep 17 00:00:00 2001
+From e695564ff3d9e03355053ae46090c5595b1c3b3c Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Mon, 7 Feb 2022 15:17:58 +0100
-Subject: [PATCH 14/71] Fix several minor overflow and out-of-bound bugs
+Subject: [PATCH 14/50] Fix several minor overflow and out-of-bound bugs
 
 Fix several overflow and out-of bound bugs that do not usually trigger
 but cause issues when strict debug options are used at compilation.
@@ -12,7 +12,7 @@ but cause issues when strict debug options are used at compilation.
  3 files changed, 12 insertions(+), 2 deletions(-)
 
 diff --git a/chem/module_bioemi_megan2.F b/chem/module_bioemi_megan2.F
-index a078447..fe183d6 100644
+index a078447b..fe183d6c 100644
 --- a/chem/module_bioemi_megan2.F
 +++ b/chem/module_bioemi_megan2.F
 @@ -1896,6 +1896,8 @@ is_mozm_species : &
@@ -25,7 +25,7 @@ index a078447..fe183d6 100644
        BBB = (  CT2-CT1*( 1.0-EXP(CT2*X) )  )
        gam_T = AAA/BBB
 diff --git a/chem/module_lightning_nox_ott.F b/chem/module_lightning_nox_ott.F
-index 0d4dd0f..0ab7545 100644
+index 0d4dd0f0..0ab7545e 100644
 --- a/chem/module_lightning_nox_ott.F
 +++ b/chem/module_lightning_nox_ott.F
 @@ -136,7 +136,9 @@
@@ -47,7 +47,7 @@ index 0d4dd0f..0ab7545 100644
 \ No newline at end of file
 + END MODULE module_lightning_nox_ott
 diff --git a/phys/module_sf_noahlsm.F b/phys/module_sf_noahlsm.F
-index 055198d..c478d10 100644
+index 055198db..c478d107 100644
 --- a/phys/module_sf_noahlsm.F
 +++ b/phys/module_sf_noahlsm.F
 @@ -4504,6 +4504,12 @@ IF ( OPT_THCND == 1 .OR. ( OPT_THCND == 2 .AND. (SOILTYP /= 4 .AND. SOILTYP /= 3

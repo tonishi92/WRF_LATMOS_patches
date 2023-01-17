@@ -1,7 +1,7 @@
-From 0abd90c833b220dd1c1c97814bc6d2ecca67b0b9 Mon Sep 17 00:00:00 2001
+From 2496fcb52f685de3cc2b1a503503200ee0280bcf Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Fri, 19 Oct 2018 11:16:19 +0200
-Subject: [PATCH 10/71] Correct dry deposition for SAPRC99 mechanisms
+Subject: [PATCH 10/50] Correct dry deposition for SAPRC99 mechanisms
 
 Sets dry deposition velocities and deposition parameters for several species
 for which it was missing in SAPRC99 mechanisms. The model was using some
@@ -12,10 +12,10 @@ large and caused issues for several VOCs, CO2, CH4 at the surface.
  1 file changed, 50 insertions(+)
 
 diff --git a/chem/module_dep_simple.F b/chem/module_dep_simple.F
-index 42bab16..8472ba6 100755
+index 6d0f779a..a1af8746 100755
 --- a/chem/module_dep_simple.F
 +++ b/chem/module_dep_simple.F
-@@ -352,6 +352,29 @@ tile_lon_loop : &
+@@ -378,6 +378,29 @@ tile_lon_loop : &
              end do
           end do
        end if
@@ -45,7 +45,7 @@ index 42bab16..8472ba6 100755
  !!!!TUCCELLA
       if  (config_flags%chem_opt == RACM_SOA_VBS_KPP .OR.           &
            config_flags%chem_opt == RACM_SOA_VBS_HET_KPP .OR.           &
-@@ -3143,6 +3166,33 @@ is_cbm4_kpp : &
+@@ -3185,6 +3208,33 @@ is_cbm4_kpp : &
            dvj(p_ma_rco3) = 1.420E-01
            endif
  

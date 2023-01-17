@@ -1,7 +1,7 @@
-From 2b57c907a8232a447f5b6de0da81e6ea543cc829 Mon Sep 17 00:00:00 2001
+From b803c34439e6d591b8db41c5e9b3f37a88edc8e2 Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Wed, 22 Jun 2022 14:12:25 +0200
-Subject: [PATCH 17/71] Add diagnosis variables for accumlatd dry and wet
+Subject: [PATCH 17/50] Add diagnosis variables for accumlatd dry and wet
  depositions
 
 TYPE: Enhancement
@@ -35,7 +35,7 @@ SOURCE: Louis Marelle and N. Daskalakis
  10 files changed, 1428 insertions(+), 185 deletions(-)
 
 diff --git a/Registry/registry.chem b/Registry/registry.chem
-index a4c7824..5b9b0c9 100644
+index c5f0f7a3..630002ae 100644
 --- a/Registry/registry.chem
 +++ b/Registry/registry.chem
 @@ -1123,6 +1123,154 @@ state  real  bc_srf_area      ikjf    aero_srf_area   1    -   -   "bc_srf_area"
@@ -562,7 +562,7 @@ index a4c7824..5b9b0c9 100644
  package   opti_aero     aero_diag_opt==0             -             state:totoa_a01,totoa_a02,totoa_a03,totoa_a04,totoa_a05,totoa_a06,totoa_a07,totoa_a08
  package   diag_aero     aero_diag_opt==1             -             state:hoa_a01,hoa_a02,hoa_a03,hoa_a04,hoa_a05,hoa_a06,hoa_a07,hoa_a08,soa_a01,soa_a02,soa_a03,soa_a04,soa_a05,soa_a06,soa_a07,soa_a08,bboa_a01,bboa_a02,bboa_a03,bboa_a04,bboa_a05,bboa_a06,bboa_a07,bboa_a08,bbsoa_a01,bbsoa_a02,bbsoa_a03,bbsoa_a04,bbsoa_a05,bbsoa_a06,bbsoa_a07,bbsoa_a08,hsoa_a01,hsoa_a02,hsoa_a03,hsoa_a04,hsoa_a05,hsoa_a06,hsoa_a07,hsoa_a08,biog_a01,biog_a02,biog_a03,biog_a04,biog_a05,biog_a06,biog_a07,biog_a08,arosoa_a01,arosoa_a02,arosoa_a03,arosoa_a04,arosoa_a05,arosoa_a06,arosoa_a07,arosoa_a08,totoa_a01,totoa_a02,totoa_a03,totoa_a04,totoa_a05,totoa_a06,totoa_a07,totoa_a08,hsoa_c,hsoa_o,bbsoa_c,bbsoa_o,biog_v1,biog_v2,biog_v3,biog_v4,ant_v1,ant_v2,ant_v3,ant_v4,smpa_v1,smpbb_v1,asmpsoa_a01,asmpsoa_a02,asmpsoa_a03,asmpsoa_a04
 diff --git a/chem/chem_driver.F b/chem/chem_driver.F
-index b76be98..68cdb78 100755
+index b76be98e..68cdb78d 100755
 --- a/chem/chem_driver.F
 +++ b/chem/chem_driver.F
 @@ -5,6 +5,34 @@
@@ -647,7 +647,7 @@ index b76be98..68cdb78 100755
  
  !-- Work around for dgnum and dgnumwet not being written to restart files.
 diff --git a/chem/chemics_init.F b/chem/chemics_init.F
-index bc7f852..ea06a54 100755
+index bc7f8529..ea06a545 100755
 --- a/chem/chemics_init.F
 +++ b/chem/chemics_init.F
 @@ -1,6 +1,11 @@
@@ -663,7 +663,7 @@ index bc7f852..ea06a54 100755
     subroutine chem_init (id,chem,emis_ant,scalar,dt,bioemdt,photdt,chemdt,stepbioe, &
                 stepphot,stepchem,stepfirepl,plumerisefire_frq,z_at_w,xlat,xlong,    &
 diff --git a/chem/dry_dep_driver.F b/chem/dry_dep_driver.F
-index f030faa..0fca9a4 100755
+index 7383fdce..80ffa73b 100755
 --- a/chem/dry_dep_driver.F
 +++ b/chem/dry_dep_driver.F
 @@ -4,6 +4,10 @@
@@ -689,7 +689,7 @@ index f030faa..0fca9a4 100755
                 dep_vel,num_vert_mix,                                      &
                 ids,ide, jds,jde, kds,kde,                                 &
                 ims,ime, jms,jme, kms,kme,                                 &
-@@ -127,6 +136,12 @@ CONTAINS
+@@ -130,6 +139,12 @@ CONTAINS
                                                       xlong,     &
                                                       snowh,     &
                                            xland,znt,raincv,ash_fall
@@ -702,7 +702,7 @@ index f030faa..0fca9a4 100755
     REAL,  DIMENSION( ims:ime , kms:kme , jms:jme )         ,        &
            INTENT(INOUT ) ::                                     &
                      cldfra,     & ! cloud fraction current timestep
-@@ -164,7 +179,7 @@ CONTAINS
+@@ -167,7 +182,7 @@ CONTAINS
  ! .. Local Scalars ..
        REAL ::  clwchem,  dvfog, dvpart,  &
          rad, rhchem, ta, ustar, vegfrac, z1,zntt
@@ -711,7 +711,7 @@ index f030faa..0fca9a4 100755
  
        INTEGER :: iland, iprt, iseason, jce, jcs,  &
                   n, nr, ipr, jpr, nvr,   &
-@@ -788,6 +803,101 @@ CONTAINS
+@@ -791,6 +806,101 @@ CONTAINS
              chem(i,k,j,nv)=max(epsilc,pblst(k))
           enddo
        enddo
@@ -813,7 +813,7 @@ index f030faa..0fca9a4 100755
  
        if( config_flags%diagnostic_chem == DEPVEL1 .and. &
            (config_flags%chem_opt == CB05_SORG_VBS_AQ_KPP) ) then
-@@ -1105,6 +1215,9 @@ CONTAINS
+@@ -1108,6 +1218,9 @@ CONTAINS
  		moist(ims,kms,jms,P_QV), moist(ims,kms,jms,P_QC), moist(ims,kms,jms,P_QI), &
          scalar(ims,kms,jms,P_QNDROP), f_qc, f_qi, chem,   &
          ccn1, ccn2, ccn3, ccn4, ccn5, ccn6, nsource,      &
@@ -824,7 +824,7 @@ index f030faa..0fca9a4 100755
  		ids,ide, jds,jde, kds,kde,                        &
  		ims,ime, jms,jme, kms,kme,                        &
 diff --git a/chem/module_aerosols_sorgam_vbs.F b/chem/module_aerosols_sorgam_vbs.F
-index 227ba4a..437423e 100644
+index 227ba4a6..437423eb 100644
 --- a/chem/module_aerosols_sorgam_vbs.F
 +++ b/chem/module_aerosols_sorgam_vbs.F
 @@ -1,4 +1,9 @@
@@ -879,7 +879,7 @@ index 227ba4a..437423e 100644
          ims,ime, jms,jme, kms,kme,                                      &
          its,ite, jts,jte, kts,kte                                       )
 diff --git a/chem/module_chem_cup.F b/chem/module_chem_cup.F
-index 3012ae1..76dc3d8 100644
+index 3012ae18..76dc3d88 100644
 --- a/chem/module_chem_cup.F
 +++ b/chem/module_chem_cup.F
 @@ -3,7 +3,12 @@
@@ -1320,7 +1320,7 @@ index 3012ae1..76dc3d8 100644
  ! put final mixing ratios into chem
        chem(:,:) = chem_av_new(:,:)
 diff --git a/chem/module_mixactivate_wrappers.F b/chem/module_mixactivate_wrappers.F
-index 71d5292..1cb02e7 100644
+index 71d5292b..1cb02e72 100644
 --- a/chem/module_mixactivate_wrappers.F
 +++ b/chem/module_mixactivate_wrappers.F
 @@ -12,6 +12,11 @@
@@ -1620,7 +1620,7 @@ index 71d5292..1cb02e7 100644
  
  
 diff --git a/chem/module_mosaic_wetscav.F b/chem/module_mosaic_wetscav.F
-index 0afa343..47ce280 100644
+index 0afa3434..47ce2803 100644
 --- a/chem/module_mosaic_wetscav.F
 +++ b/chem/module_mosaic_wetscav.F
 @@ -1,13 +1,21 @@
@@ -1937,7 +1937,7 @@ index 0afa343..47ce280 100644
  
  
 diff --git a/chem/module_prep_wetscav_sorgam.F b/chem/module_prep_wetscav_sorgam.F
-index ea07039..cba98ac 100644
+index ea070396..cba98ac9 100644
 --- a/chem/module_prep_wetscav_sorgam.F
 +++ b/chem/module_prep_wetscav_sorgam.F
 @@ -962,6 +962,12 @@ SUBROUTINE aerosols_soa_vbs_init_aercld_ptrs(   &
@@ -2023,7 +2023,7 @@ index ea07039..cba98ac 100644
          ims,ime, jms,jme, kms,kme,                                      &
          its,ite, jts,jte, kts,kte                                       )
 diff --git a/chem/module_wetscav_driver.F b/chem/module_wetscav_driver.F
-index 43cd5de..9dcc679 100644
+index 43cd5de5..9dcc6799 100644
 --- a/chem/module_wetscav_driver.F
 +++ b/chem/module_wetscav_driver.F
 @@ -6,6 +6,12 @@

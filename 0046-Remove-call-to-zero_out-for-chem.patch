@@ -1,0 +1,33 @@
+From 007f31448be9c991c81732b32f0839336a8a1ab8 Mon Sep 17 00:00:00 2001
+From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
+Date: Sat, 13 Aug 2022 16:04:08 +0200
+Subject: [PATCH 46/50] Remove call to zero_out for chem
+
+In solve_em, remove a call to microphysics_zero_outb so that small chem
+values are not reset to mp_zero_out_thresh. The default value of
+mp_zero_out_thresh is 1.0E-8, but some trace chem species and radicals
+should be allowed to be smaller than this.
+---
+ dyn_em/solve_em.F | 6 ------
+ 1 file changed, 6 deletions(-)
+
+diff --git a/dyn_em/solve_em.F b/dyn_em/solve_em.F
+index 72428e12..8a60a2e1 100644
+--- a/dyn_em/solve_em.F
++++ b/dyn_em/solve_em.F
+@@ -4020,12 +4020,6 @@ BENCH_START(moist_phys_end_tim)
+                       its, ite, jts, jte,                               &
+                       k_start    , k_end                                )
+ 
+-       CALL microphysics_zero_outb (                                    &
+-                      chem , num_chem , config_flags ,              &
+-                      ids, ide, jds, jde, kds, kde,                     &
+-                      ims, ime, jms, jme, kms, kme,                     &
+-                      its, ite, jts, jte,                               &
+-                      k_start    , k_end                                )
+        CALL microphysics_zero_outb (                                    &
+                       tracer , num_tracer , config_flags ,              &
+                       ids, ide, jds, jde, kds, kde,                     &
+-- 
+2.31.1
+
