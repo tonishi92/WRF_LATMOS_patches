@@ -1,4 +1,4 @@
-From 880e49bdf8f8a2d18d162f74caceb784c81e9869 Mon Sep 17 00:00:00 2001
+From 1f01761bb72d88d98ce3a97caa3590fdefdfdcda Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Tue, 17 May 2016 18:40:45 +0200
 Subject: [PATCH 09/50] Add lightning parameterization for KF-CuP cumuli

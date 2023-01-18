@@ -1,4 +1,4 @@
-From b803c34439e6d591b8db41c5e9b3f37a88edc8e2 Mon Sep 17 00:00:00 2001
+From fab34211641e4094b0e9612cd6291efaa6b8fc38 Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Wed, 22 Jun 2022 14:12:25 +0200
 Subject: [PATCH 17/50] Add diagnosis variables for accumlatd dry and wet

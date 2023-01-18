@@ -1,4 +1,4 @@
-From ad01f014b9ad665732d9fbc20092c3d376e71c0e Mon Sep 17 00:00:00 2001
+From c0c60734e4c903c6eddca8622b7189a0e35cb107 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 13:16:50 +0100
 Subject: [PATCH 23/50] KF-CuP lightning
@@ -20,7 +20,7 @@ chem/emissions_driver.F
   * Update Lightning NO emission : cldfra_cup and htop are passed
     to subroutine lightning_nox_driver in chem/module_lightning_nox_driver.F
 
-chem/Makefile_org
+chem/Makefile
   * replace module_lightning_nox_decaria.o with module_lightning_nox_decaris_cup.o
 
 chem/module_lightning_nox_driver.F
@@ -61,7 +61,7 @@ phys/module_ltng_iccg.F
   * Implementation of new subroutine iccg_pr93_cup for a lightning parameterization of KF-CuP cumuli
   (Already added in a previous commit)
 ---
- chem/Makefile_org                       |   2 +-
+ chem/Makefile                           |   2 +-
  chem/chem_driver.F                      |   3 +
  chem/depend.chem                        |   4 +-
  chem/emissions_driver.F                 |  10 +
@@ -70,11 +70,11 @@ phys/module_ltng_iccg.F
  6 files changed, 381 insertions(+), 7 deletions(-)
  create mode 100644 chem/module_lightning_nox_decaria_cup.F
 
-diff --git a/chem/Makefile_org b/chem/Makefile_org
-index 2e90b1f8..22bfeec4 100755
---- a/chem/Makefile_org
-+++ b/chem/Makefile_org
-@@ -147,7 +147,7 @@ MODULES =                                 \
+diff --git a/chem/Makefile b/chem/Makefile
+index f1cc8949..19736f57 100755
+--- a/chem/Makefile
++++ b/chem/Makefile
+@@ -148,7 +148,7 @@ MODULES =                                 \
          module_input_tracer.o             \
  	module_lightning_nox_driver.o     \
  	module_lightning_nox_ott.o        \

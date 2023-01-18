@@ -1,4 +1,4 @@
-From 23db8c2e90fd2abd9bb1228c5b4f7669d88a2771 Mon Sep 17 00:00:00 2001
+From effb78410d2a30ba92b3be67b41faf07be43bf90 Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Wed, 23 Nov 2022 14:48:54 +0100
 Subject: [PATCH 34/50] (Update) ph_cmuaq_cur initialization (for -D option)

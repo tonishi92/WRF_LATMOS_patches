@@ -1,4 +1,4 @@
-From e1e766e1cca19736b3dd963fd628266856fe5709 Mon Sep 17 00:00:00 2001
+From a645b8c851a97cc13a53625cf07a42cf6048246b Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 13:14:27 +0100
 Subject: [PATCH 21/50] Correct mapping to match MODIS and not USGS (check

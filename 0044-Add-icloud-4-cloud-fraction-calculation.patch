@@ -1,4 +1,4 @@
-From 89b17da59a23be306069dd4e6faa375bd47d7a43 Mon Sep 17 00:00:00 2001
+From a899ae727ee04fde919accc1d8cad51405e2a847 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Thu, 28 Jul 2022 23:09:15 +0200
 Subject: [PATCH 44/50] Add icloud=4 cloud fraction calculation
