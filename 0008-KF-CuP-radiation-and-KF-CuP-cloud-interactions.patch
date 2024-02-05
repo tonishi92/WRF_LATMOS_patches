@@ -1,7 +1,7 @@
-From 1b145111b2a13c701c2f619bb544aaf90333f7cc Mon Sep 17 00:00:00 2001
+From c4671f245d6d2b43f8cdc18df79864e5d7ceb3b2 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Wed, 17 Oct 2018 16:56:35 +0200
-Subject: [PATCH 08/50] KF-CuP/radiation and KF-CuP/cloud interactions
+Subject: [PATCH 08/49] KF-CuP/radiation and KF-CuP/cloud interactions
 
 Adds cldfra_dp and cldfra_sh outputs from KF-CuP, the cloud fractions
 associated with deep and shalow convection. Calculations are based on
@@ -223,10 +223,10 @@ index 251e8603..cbc6b066 100644
  !...COMPUTE HYDROMETEOR TENDENCIES AS IS DONE FOR T, QV...
  !     
 diff --git a/phys/module_cumulus_driver.F b/phys/module_cumulus_driver.F
-index c6d3b1f3..ea56aff4 100644
+index 305c32dd..a6dd23e5 100644
 --- a/phys/module_cumulus_driver.F
 +++ b/phys/module_cumulus_driver.F
-@@ -1572,6 +1572,9 @@ CONTAINS
+@@ -1567,6 +1567,9 @@ CONTAINS
               ,RQSCUTEN=rqscuten                                 &
               ,F_QV=f_qv,F_QC=f_qc,F_QR=f_qr                     &
               ,F_QI=f_qi,F_QS=f_qs                               &
@@ -237,10 +237,10 @@ index c6d3b1f3..ea56aff4 100644
          
          
 diff --git a/phys/module_physics_init.F b/phys/module_physics_init.F
-index 8725908b..4c9b9541 100644
+index 7b1487ed..9f350347 100644
 --- a/phys/module_physics_init.F
 +++ b/phys/module_physics_init.F
-@@ -1120,7 +1120,8 @@ CHARACTER(LEN=8) :: name
+@@ -1119,7 +1119,8 @@ CHARACTER(LEN=8) :: name
  
     icloud_cu = 0
     IF ( config_flags%cu_rad_feedback ) THEN

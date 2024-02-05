@@ -1,7 +1,7 @@
-From 7276dd767f5a3c3a09a60d250df7b838d94d322b Mon Sep 17 00:00:00 2001
+From 6fec751a238d5900891d48aaca510e3ac58d1b61 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Tue, 9 Oct 2018 15:12:00 +0200
-Subject: [PATCH 06/50] Add a BB emission package for SAPRC99
+Subject: [PATCH 06/49] Add a BB emission package for SAPRC99
 
 Adds a biomass burning (BB) emission package for SAPRC99 mechanisms,
 BIOMASSB_SAPRC (biomass_burn_opt = 6 in &chem), and couples it to the
@@ -21,7 +21,7 @@ through emiss_ant(p_e_orgj_a) and emiss_ant(p_e_orgj_bb)
  5 files changed, 205 insertions(+), 27 deletions(-)
 
 diff --git a/Registry/registry.chem b/Registry/registry.chem
-index 2e8e820c..9e99a48e 100644
+index 70586eae..cf4142d3 100644
 --- a/Registry/registry.chem
 +++ b/Registry/registry.chem
 @@ -413,6 +413,28 @@ state    real  ebu_hcooh    ikjf     ebu           1         Z        -      "eb
@@ -82,7 +82,7 @@ index 2e8e820c..9e99a48e 100644
  
  # additional array for ch4 bbm emission
  state    real  ebu_in_ch4         i]jf      ebu_in      1         -        i07        "ebu_in_ch4"        "EMISSIONS"          "mol km^-2 hr^-1"
-@@ -4097,6 +4141,9 @@ package   biomassb_t1_mozcart   biomass_burn_opt==4          -          state:me
+@@ -4098,6 +4142,9 @@ package   biomassb_t1_mozcart   biomass_burn_opt==4          -          state:me
  # GHG biomass burning
  package   biomassb_ghg  biomass_burn_opt==5          -             state::mean_fct_agtf,mean_fct_agef,mean_fct_agsv,mean_fct_aggr,firesize_agtf,firesize_agef,firesize_agsv,firesize_aggr;ebu:ebu_co,ebu_co2,ebu_ch4;ebu_in:ebu_in_co,ebu_in_co2,ebu_in_ch4
  
