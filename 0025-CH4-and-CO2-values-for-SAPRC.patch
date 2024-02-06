@@ -1,7 +1,7 @@
-From 5f789eeb03e0f7494361bee90ea0d3245e49cbe1 Mon Sep 17 00:00:00 2001
+From 722516664f80108d1375bf9e94b613aa4c3b16fa Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Wed, 5 Oct 2022 14:25:01 +0200
-Subject: [PATCH 24/49] CH4 and CO2 values for SAPRC
+Subject: [PATCH 25/50] CH4 and CO2 values for SAPRC
 
 CH4 and CO2 values for SAPRC are modified accordingly to Blasing et al. 2014
 Change the forced CH4 value for SAPRC.
@@ -38,10 +38,10 @@ index 751327eb..60e5dcdf 100755
              enddo
           enddo
 diff --git a/chem/chemics_init.F b/chem/chemics_init.F
-index 333fcad5..bef4d1fe 100755
+index acfeb9bd..3b78c3e8 100755
 --- a/chem/chemics_init.F
 +++ b/chem/chemics_init.F
-@@ -1467,8 +1467,12 @@ CASE(GOCARTRACM_KPP,RACM_KPP,RACMPM_KPP,RACMSORG_KPP,RACM_MIM_KPP,RACM_ESRLSORG_
+@@ -1470,8 +1470,12 @@ CASE(GOCARTRACM_KPP,RACM_KPP,RACMPM_KPP,RACMSORG_KPP,RACM_MIM_KPP,RACM_ESRLSORG_
            do j=jts,jte
               do k=kts,kte
                  do i=its,ite

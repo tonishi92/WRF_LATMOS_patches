@@ -1,7 +1,7 @@
-From 58e6d7ee086a0f43174586e299e1a339c5152a87 Mon Sep 17 00:00:00 2001
+From 7ec5229c9648263a26c758cb66b42533d569c997 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 13:20:33 +0100
-Subject: [PATCH 25/49] UV albedo over snow and ice in Fast-J photolysis and
+Subject: [PATCH 26/50] UV albedo over snow and ice in Fast-J photolysis and
  for FTUV+TUV photolysis
 
 TYPE : Updates
@@ -87,7 +87,7 @@ index 60e5dcdf..e73eab16 100755
                grid%gaer1,grid%gaer2,grid%gaer3,grid%gaer4,                            &
                grid%waer1,grid%waer2,grid%waer3,grid%waer4,                            &
 diff --git a/chem/chemics_init.F b/chem/chemics_init.F
-index bef4d1fe..d626eeda 100755
+index 3b78c3e8..7abc214f 100755
 --- a/chem/chemics_init.F
 +++ b/chem/chemics_init.F
 @@ -64,6 +64,9 @@
@@ -100,7 +100,7 @@ index bef4d1fe..d626eeda 100755
     USE module_mozcart_wetscav, only : wetscav_mozcart_init
     USE module_aerosols_sorgam
     USE module_aerosols_soa_vbs, only: aerosols_soa_vbs_init
-@@ -813,6 +816,13 @@ end if
+@@ -816,6 +819,13 @@ end if
  
          call ftuv_init( id, its, ite, jts, jte, kte, &
                    ide, jde, config_flags,config_flags%num_land_cat,mminlu_loc )

@@ -1,7 +1,7 @@
-From b120c86de9e61beb0a0fe80e80cdacf32ccfa793 Mon Sep 17 00:00:00 2001
+From e8de11eb42b83419d4d8bf1ac29666051f13916a Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 12:57:06 +0100
-Subject: [PATCH 18/49] Enhancement I : Direct radiative effects of aerosols
+Subject: [PATCH 18/50] Enhancement I : Direct radiative effects of aerosols
  and ozone Enhancement II: Aerosol optical properties without effects of BC,
  SO4, NO3, NH4 or OC and namelist control for radiation effect calculations
 

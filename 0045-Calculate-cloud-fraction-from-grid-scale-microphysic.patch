@@ -1,7 +1,7 @@
-From 143e31d37120052b2a66110b36439370b7b26fb2 Mon Sep 17 00:00:00 2001
+From 54763b69b9820d19a5d59f850f1d300ef0090631 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 13:38:47 +0100
-Subject: [PATCH 44/49] Calculate cloud fraction from grid-scale microphysics
+Subject: [PATCH 45/50] Calculate cloud fraction from grid-scale microphysics
 
 Add a variable cldfra_ls, containing the cloud fraction from large-scale
 microphysics (grid-scale clouds). If cu_rad_feedback is off, cldfra_ls

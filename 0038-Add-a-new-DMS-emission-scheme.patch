@@ -1,7 +1,7 @@
-From 71739abc75cc1370d416e0a646e4f6f3d13846dc Mon Sep 17 00:00:00 2001
+From 94799905b685485b18b22255bf559548863cca58 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 13:34:27 +0100
-Subject: [PATCH 37/49] Add a new DMS emission scheme
+Subject: [PATCH 38/50] Add a new DMS emission scheme
 
 Adds a new module for DMS emissions, module_nightingale_dmsemis. These DMS
 emissions are based on Nightingale et al. (2000) and Saltzman et al.  (1993).
@@ -23,10 +23,10 @@ NEW :
    package   dms_nightingale  dmsemis_opt==2               -             -
 ---
  Registry/registry.chem            |  6 +++---
- chem/chemics_init.F               | 17 ++++++++++++-----
+ chem/chemics_init.F               |  8 +++++++-
  chem/depend.chem                  |  4 +++-
  chem/module_nightingale_dmsemis.F | 18 ++++++++++++++----
- 4 files changed, 32 insertions(+), 13 deletions(-)
+ 4 files changed, 27 insertions(+), 9 deletions(-)
 
 diff --git a/Registry/registry.chem b/Registry/registry.chem
 index e3debb42..5c5f8bac 100644
@@ -53,22 +53,12 @@ index e3debb42..5c5f8bac 100644
  package   maxwell_approx   aer_op_opt==2                -             -
  package   volume_exact     aer_op_opt==3                -             -
 diff --git a/chem/chemics_init.F b/chem/chemics_init.F
-index d626eeda..4d5f3c8c 100755
+index 7abc214f..6be3b4af 100755
 --- a/chem/chemics_init.F
 +++ b/chem/chemics_init.F
-@@ -489,12 +489,19 @@ call wrf_message("**************************************************************
-       call wrf_error_fatal( trim(message_txt) )
-    endif
- 
--!lm Add this condition on emiss_opt for Nightingale DMS emissions
--   if ( config_flags%dmsemis_opt == 2 .and. (config_flags%emiss_opt /= 4 .and. config_flags%emiss_opt /= 13) ) then
--      call wrf_error_fatal (15,'chemics_init: error, nightingale_dmsemis (dmsemis_opt = 2) &
--                              requires e_dms_oc to be defined in emis_ant (emiss_opt = 4 or 13)')
-+   !LMarelle: Add a condition on emiss_opt for Nightingale DMS emissions
-+   if ( config_flags%dmsemis_opt == 2 .and. (config_flags%emiss_opt /= 13 &
-+        .and. config_flags%emiss_opt /= 10) ) then
-+      call wrf_error_fatal ('chemics_init: error, nightingale_dmsemis (dmsemis_opt = 2) &
-+                            requires e_dms_oc to be defined in emis_ant (emiss_opt = 13 or 10)')
+@@ -495,7 +495,13 @@ call wrf_message("**************************************************************
+       call wrf_error_fatal (15,'chemics_init: error, nightingale_dmsemis (dmsemis_opt = 2) &
+                               requires e_dms_oc to be defined in emis_ant (emiss_opt = 4, 8, 10 or 13)')
     endif
 -!lm
 +

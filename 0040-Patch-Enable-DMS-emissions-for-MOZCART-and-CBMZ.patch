@@ -1,7 +1,7 @@
-From fa70f2c1d55b511f29ec1c8c2c4571c3feac63c2 Mon Sep 17 00:00:00 2001
+From 598ce2abca3852097292ab010bbdd886aba6c40c Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Mon, 12 Dec 2022 14:49:50 +0100
-Subject: [PATCH 39/49] (Patch) Enable DMS emissions for MOZCART and CBMZ
+Subject: [PATCH 40/50] (Patch) Enable DMS emissions for MOZCART and CBMZ
 
 TYPE : Patch application
 
@@ -70,9 +70,9 @@ In order to avoid a confusion, '=== ' is placed at the beginning of each line
 === --
 === 2.31.1
 ---
- Registry/registry.chem | 2 +-
- chem/chemics_init.F    | 9 ++++++---
- 2 files changed, 7 insertions(+), 4 deletions(-)
+ Registry/registry.chem |  2 +-
+ chem/chemics_init.F    | 13 ++++++++-----
+ 2 files changed, 9 insertions(+), 6 deletions(-)
 
 diff --git a/Registry/registry.chem b/Registry/registry.chem
 index 5c5f8bac..73b39dcf 100644
@@ -88,22 +88,25 @@ index 5c5f8bac..73b39dcf 100644
  
  package   mozmem           emiss_opt==10                   -             emis_ant:e_co,e_no,e_no2,e_bigalk,e_bigene,e_c2h4,e_c2h5oh,e_c2h6,e_c3h6,e_c3h8,e_ch2o,e_ch3cho,e_ch3coch3,e_ch3oh,e_mek,e_so2,e_toluene,e_benzene,e_xylene,e_nh3,e_isop,e_apin,e_pm25i,e_pm25j,e_eci,e_ecj,e_orgi,e_orgj,e_so4i,e_so4j,e_no3i,e_no3j,e_nh4i,e_nh4j,e_nai,e_naj,e_cli,e_clj,e_co_a,e_orgi_a,e_orgj_a,e_co_bb,e_orgi_bb,e_orgj_bb,e_pm_10,e_c2h2,e_gly,e_sulf,e_macr,e_mgly,e_mvk,e_hcooh,e_hono,e_dms_oc
 diff --git a/chem/chemics_init.F b/chem/chemics_init.F
-index 4d5f3c8c..186c12c1 100755
+index 6be3b4af..b5ae5be3 100755
 --- a/chem/chemics_init.F
 +++ b/chem/chemics_init.F
-@@ -490,10 +490,13 @@ call wrf_message("**************************************************************
+@@ -489,11 +489,14 @@ call wrf_message("**************************************************************
+       call wrf_error_fatal( trim(message_txt) )
     endif
  
-    !LMarelle: Add a condition on emiss_opt for Nightingale DMS emissions
--   if ( config_flags%dmsemis_opt == 2 .and. (config_flags%emiss_opt /= 13 &
--        .and. config_flags%emiss_opt /= 10) ) then
+-!lm Add this condition on emiss_opt for Nightingale DMS emissions
+-   if ( config_flags%dmsemis_opt == 2 .and. (config_flags%emiss_opt /= 4 .and. config_flags%emiss_opt /= 8 &
+-                                          .and. config_flags%emiss_opt /= 10 .and. config_flags%emiss_opt /= 13) ) then
+-      call wrf_error_fatal (15,'chemics_init: error, nightingale_dmsemis (dmsemis_opt = 2) &
+-                              requires e_dms_oc to be defined in emis_ant (emiss_opt = 4, 8, 10 or 13)')
++   !LMarelle: Add a condition on emiss_opt for Nightingale DMS emissions
 +   if ( config_flags%dmsemis_opt == 2 .and. &
 +        (config_flags%emiss_opt /= 4 &
 +         .and. config_flags%emiss_opt /= 8 &
 +         .and. config_flags%emiss_opt /= 10 &
 +         .and. config_flags%emiss_opt /= 13) ) then
-       call wrf_error_fatal ('chemics_init: error, nightingale_dmsemis (dmsemis_opt = 2) &
--                            requires e_dms_oc to be defined in emis_ant (emiss_opt = 13 or 10)')
++      call wrf_error_fatal ('chemics_init: error, nightingale_dmsemis (dmsemis_opt = 2) &
 +                            requires e_dms_oc to be defined in emis_ant (emiss_opt = 4,8,10,13)')
     endif
  

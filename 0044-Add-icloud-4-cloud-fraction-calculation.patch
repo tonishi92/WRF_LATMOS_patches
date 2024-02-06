@@ -1,7 +1,7 @@
-From e435cc2dbb8f476078b8dafc0595bebf8689752e Mon Sep 17 00:00:00 2001
+From 1f029b0c0b9ddd1649eed74d94b58f332a2bf22a Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Thu, 28 Jul 2022 23:09:15 +0200
-Subject: [PATCH 43/49] Add icloud=4 cloud fraction calculation
+Subject: [PATCH 44/50] Add icloud=4 cloud fraction calculation
 
 In radiation_driver, add an icloud=4 option for calculating cloud fraction,
 following Siebesma et al., 2003. The code was adapted from the existing
