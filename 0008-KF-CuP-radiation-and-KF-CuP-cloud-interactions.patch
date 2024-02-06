@@ -1,4 +1,4 @@
-From c4671f245d6d2b43f8cdc18df79864e5d7ceb3b2 Mon Sep 17 00:00:00 2001
+From 7483be34bf49d0db6c6a746bbbab9e801d267428 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Wed, 17 Oct 2018 16:56:35 +0200
 Subject: [PATCH 08/49] KF-CuP/radiation and KF-CuP/cloud interactions
@@ -237,7 +237,7 @@ index 305c32dd..a6dd23e5 100644
          
          
 diff --git a/phys/module_physics_init.F b/phys/module_physics_init.F
-index 7b1487ed..9f350347 100644
+index e26df70a..576ebb25 100644
 --- a/phys/module_physics_init.F
 +++ b/phys/module_physics_init.F
 @@ -1119,7 +1119,8 @@ CHARACTER(LEN=8) :: name

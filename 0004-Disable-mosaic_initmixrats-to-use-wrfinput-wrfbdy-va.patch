@@ -1,4 +1,4 @@
-From bdff3553002e661b2fade73c656590b7c0aea48e Mon Sep 17 00:00:00 2001
+From 4961664fdb617819dad633ec7040686410be0a02 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Wed, 23 Feb 2022 16:49:55 +0100
 Subject: [PATCH 04/49] Disable mosaic_initmixrats to use wrfinput/wrfbdy

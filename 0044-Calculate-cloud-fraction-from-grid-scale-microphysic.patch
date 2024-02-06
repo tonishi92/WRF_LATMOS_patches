@@ -1,4 +1,4 @@
-From 881cb492c38e8cddbaeedd2ab182e29027acbd37 Mon Sep 17 00:00:00 2001
+From 143e31d37120052b2a66110b36439370b7b26fb2 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 13:38:47 +0100
 Subject: [PATCH 44/49] Calculate cloud fraction from grid-scale microphysics
@@ -24,7 +24,7 @@ fraction, but if cu_rad_feedback is on, cldfra also includes cumuli.
  8 files changed, 53 insertions(+), 294 deletions(-)
 
 diff --git a/Registry/Registry.EM_COMMON b/Registry/Registry.EM_COMMON
-index f577d185..26d0b521 100644
+index ed9db415..443cc9b9 100644
 --- a/Registry/Registry.EM_COMMON
 +++ b/Registry/Registry.EM_COMMON
 @@ -1683,6 +1683,7 @@ state    real  CCLDFRA         ikj      misc        1         -      r        "C
