@@ -1,7 +1,7 @@
 From 3e821ad78d0c1fc89aa892ede15eff66f0f043b8 Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Fri, 9 Dec 2022 13:00:31 +0100
-Subject: [PATCH 37/50] Patch application: Add a biomass burning emission
+Subject: [PATCH 37/52] Patch application: Add a biomass burning emission
  package for CBMZ
 
 The following patch on "Add a biomass burning emission package for CBMZ" is applied.

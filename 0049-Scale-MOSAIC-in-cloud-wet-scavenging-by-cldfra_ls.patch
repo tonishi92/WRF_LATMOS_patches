@@ -1,7 +1,7 @@
 From ea4b8ced1bde65cacf93425e541f0e5b7f6f66f8 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Thu, 18 Aug 2022 15:22:09 +0200
-Subject: [PATCH 49/50] Scale MOSAIC in-cloud wet scavenging by cldfra_ls
+Subject: [PATCH 49/52] Scale MOSAIC in-cloud wet scavenging by cldfra_ls
 
 In module_mosaic_wetscav.F, scale the rate of in-cloud wet scavenging by
 the large-scale cloud fraction. This reduces in-cloud aerosol scavenging

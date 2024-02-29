@@ -1,7 +1,7 @@
 From 033bc5319d00f06888f66e5fb0a989ea55d6a932 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Wed, 23 Feb 2022 16:54:11 +0100
-Subject: [PATCH 05/50] Fix WRF-Chem NetCDF I/O bug + increase chem spec
+Subject: [PATCH 05/52] Fix WRF-Chem NetCDF I/O bug + increase chem spec
 
 Fix a bug in external/io_netcdf/wrf_io.F90, where a #if(WRF_CHEM == 1)
 test fails setting MaxVars (max number of NetCDF variables in WRF I/O

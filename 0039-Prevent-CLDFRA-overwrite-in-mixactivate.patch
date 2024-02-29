@@ -1,7 +1,7 @@
 From 49842e936c9e677fd1c18d7ff012fd6585404bc2 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Mon, 12 Dec 2022 12:45:00 +0100
-Subject: [PATCH 39/50] Prevent CLDFRA overwrite in mixactivate
+Subject: [PATCH 39/52] Prevent CLDFRA overwrite in mixactivate
 
 Description:
    In phys/module_mixactivate.F, remove intent(inout) declarations for

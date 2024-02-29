@@ -1,7 +1,7 @@
 From a2bc76848b7c47adea807fa6eb2be1e65ad411fa Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Sat, 13 Aug 2022 16:19:33 +0200
-Subject: [PATCH 47/50] Correct the layer air mass calculation in
+Subject: [PATCH 47/52] Correct the layer air mass calculation in
  mozcart_wetscav
 
 In module_mozcart_wetscav, rewrite the calculation of air layer mass

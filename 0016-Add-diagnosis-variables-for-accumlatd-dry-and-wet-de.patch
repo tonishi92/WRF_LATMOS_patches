@@ -1,7 +1,7 @@
 From b6b30648f53b1484ce7a06630862195270c82e5d Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Wed, 22 Jun 2022 14:12:25 +0200
-Subject: [PATCH 16/50] Add diagnosis variables for accumlatd dry and wet
+Subject: [PATCH 16/52] Add diagnosis variables for accumlatd dry and wet
  depositions
 
 TYPE: Enhancement

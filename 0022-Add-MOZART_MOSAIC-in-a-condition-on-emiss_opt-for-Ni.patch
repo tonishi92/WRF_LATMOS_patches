@@ -1,7 +1,7 @@
 From 272215415ba85e9e60324aae0d7b0b67bdecb72b Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 6 Feb 2024 11:45:23 +0100
-Subject: [PATCH 22/50] Add MOZART_MOSAIC in a condition on emiss_opt for
+Subject: [PATCH 22/52] Add MOZART_MOSAIC in a condition on emiss_opt for
  Nightingale DMS emissions in chem/chemics_init.F
 
 emiss_opt =  ecbmz_mosaic (4)

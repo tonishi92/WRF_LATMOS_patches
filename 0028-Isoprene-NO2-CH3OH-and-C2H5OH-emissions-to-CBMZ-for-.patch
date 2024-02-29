@@ -1,7 +1,7 @@
 From f347f1280dd5b1697c537b3dd30957c854bb09c4 Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Fri, 7 Oct 2022 14:05:31 +0200
-Subject: [PATCH 28/50] Isoprene, NO2, CH3OH and C2H5OH emissions to CBMZ for
+Subject: [PATCH 28/52] Isoprene, NO2, CH3OH and C2H5OH emissions to CBMZ for
  emiss_inpt other than 1 or 102
 
 TYPE : Updates & Debug

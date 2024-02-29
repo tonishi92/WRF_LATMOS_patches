@@ -1,7 +1,7 @@
 From 9166c4aec3717ac38e42e72b597ed43a26e96025 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 13:14:27 +0100
-Subject: [PATCH 20/50] Correct mapping to match MODIS and not USGS (check
+Subject: [PATCH 20/52] Correct mapping to match MODIS and not USGS (check
  MPTABLE.TBL)
 
 TYPE : debug
