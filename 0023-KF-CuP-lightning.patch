@@ -1,4 +1,4 @@
-From a7b0984f3da52aa7685e4c184963731095041ed3 Mon Sep 17 00:00:00 2001
+From 517a2d53ce5bb3fe6a57df3c0205443b10305bb8 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 13:16:50 +0100
 Subject: [PATCH 23/52] KF-CuP lightning
@@ -84,10 +84,10 @@ index 951e4222..b457583a 100755
          module_mosaic_init_aerpar.o       \
          module_mosaic2_driver.o           \
 diff --git a/chem/chem_driver.F b/chem/chem_driver.F
-index dd1fa8e3..751327eb 100755
+index b31816f8..aedd3668 100755
 --- a/chem/chem_driver.F
 +++ b/chem/chem_driver.F
-@@ -925,6 +925,9 @@
+@@ -927,6 +927,9 @@
                current_month,                                                               &
           ! stuff for LNOx emissions
               grid%ht, grid%refl_10cm, grid%ic_flashrate, grid%cg_flashrate,                 &
@@ -114,7 +114,7 @@ index 1295fdf6..01377d7b 100644
  module_cam_mam_gas_wetdep_driver.o: ../frame/module_state_description.o  ../phys/module_cam_support.o ../phys/module_data_cam_mam_asect.o ../phys/module_cam_physconst.o ../phys/module_cam_infnan.o module_cam_mam_mo_sethet.o
  
 diff --git a/chem/emissions_driver.F b/chem/emissions_driver.F
-index 296cde09..e2af4b2f 100644
+index 4baeda7d..96a36419 100644
 --- a/chem/emissions_driver.F
 +++ b/chem/emissions_driver.F
 @@ -66,6 +66,9 @@ CONTAINS
@@ -127,7 +127,7 @@ index 296cde09..e2af4b2f 100644
           ! end stuff for LNOx emissions
           ! stuff for aircraft emissions
           emis_aircraft,                                                    &
-@@ -340,6 +343,10 @@ CONTAINS
+@@ -345,6 +348,10 @@ CONTAINS
  ! stuff for lightning NOx
       REAL, DIMENSION( ims:ime,          jms:jme ),           INTENT(IN   ) :: ht, ic_flashrate, cg_flashrate
       REAL, DIMENSION( ims:ime, kms:kme, jms:jme ),           INTENT(IN   ) :: refl_10cm
@@ -136,9 +136,9 @@ index 296cde09..e2af4b2f 100644
 +     REAL, DIMENSION( ims:ime,          jms:jme ),           INTENT(IN   ) :: htop
 +!lm
  ! end stuff for lightning NOx
- !
- ! Local variables...
-@@ -1683,6 +1690,9 @@ CONTAINS
+ 
+ ! stuff for online NH3  "WRF-NH3-CHEM" modified by renchuanhua
+@@ -1804,6 +1811,9 @@ real, save :: freq_industry(24)    = &
              ltng_temp_upper=config_flags%ltng_temp_upper,                 &
              ltng_temp_lower=config_flags%ltng_temp_lower,                 &
              cellcount_method=config_flags%cellcount_method,               &

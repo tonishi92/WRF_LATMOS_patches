@@ -1,4 +1,4 @@
-From 9166c4aec3717ac38e42e72b597ed43a26e96025 Mon Sep 17 00:00:00 2001
+From 2d8486e150f1766e8a101f28b1f51d87598d7743 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 13:14:27 +0100
 Subject: [PATCH 20/52] Correct mapping to match MODIS and not USGS (check
@@ -27,10 +27,10 @@ Mapping MODIS/USGS with Zhang (2001)
  6 files changed, 182 insertions(+), 29 deletions(-)
 
 diff --git a/Registry/registry.chem b/Registry/registry.chem
-index 2f58c89c..5dbd45ea 100644
+index 8d7b20c7..3021a791 100644
 --- a/Registry/registry.chem
 +++ b/Registry/registry.chem
-@@ -4090,6 +4090,9 @@ rconfig   integer     chem_in_opt         namelist,chem          max_domains
+@@ -4101,6 +4101,9 @@ rconfig   integer     chem_in_opt         namelist,chem          max_domains
  rconfig   integer     phot_opt            namelist,chem          max_domains    0       rh    "phot_opt"            ""      ""
  rconfig   integer     gas_drydep_opt      namelist,chem          max_domains    1       rh    "gas_drydep_opt"      ""      ""
  rconfig   integer     aer_drydep_opt      namelist,chem          max_domains    1       rh    "aer_drydep_opt"      ""      ""
@@ -41,10 +41,10 @@ index 2f58c89c..5dbd45ea 100644
  rconfig   integer     radeffect_option    namelist,chem          max_domains    0       rh    "radeffect"           ""      ""
  #LMarelle add an option for gravitational settling in MOSAIC
 diff --git a/chem/chem_driver.F b/chem/chem_driver.F
-index 7715ea6c..dd1fa8e3 100755
+index 20854c1f..b31816f8 100755
 --- a/chem/chem_driver.F
 +++ b/chem/chem_driver.F
-@@ -1261,7 +1261,7 @@
+@@ -1268,7 +1268,7 @@
              call wrf_debug(15,'calling dry_deposition_driver')
              call dry_dep_driver(grid%id,curr_secs,ktau,grid%dt,config_flags,          &
                   grid%gmt,ijulian,t_phy,moist,scalar,p8w,t8w,vvel,                &
@@ -53,7 +53,7 @@ index 7715ea6c..dd1fa8e3 100755
                   grid%cldfra, grid%cldfra_old,grid%raincv_b,seasin,dustin,            &
  	         grid%ccn1, grid%ccn2, grid%ccn3, grid%ccn4, grid%ccn5, grid%ccn6,    &
                   grid%qndropsource,grid%ivgtyp,grid%tsk,grid%gsw,grid%vegfra,pbl_h,   &
-@@ -1282,7 +1282,7 @@
+@@ -1289,7 +1289,7 @@
                   grid%setvel_5, imod,                                                 &                  
                   grid%is_CAMMGMP_used,                                                &
  !lm

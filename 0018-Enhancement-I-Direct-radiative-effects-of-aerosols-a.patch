@@ -1,4 +1,4 @@
-From e8de11eb42b83419d4d8bf1ac29666051f13916a Mon Sep 17 00:00:00 2001
+From 0dc8a4a2db86fbe603280a31c26eb29078275bf0 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 12:57:06 +0100
 Subject: [PATCH 18/52] Enhancement I : Direct radiative effects of aerosols
@@ -91,10 +91,10 @@ Related variables:
  11 files changed, 1924 insertions(+), 32 deletions(-)
 
 diff --git a/Registry/Registry.EM_COMMON b/Registry/Registry.EM_COMMON
-index 889a9285..dd964788 100644
+index 76f48529..4733b416 100644
 --- a/Registry/Registry.EM_COMMON
 +++ b/Registry/Registry.EM_COMMON
-@@ -1814,6 +1814,192 @@ state    real  LWUPBCLN         ij      misc        1         -      rhdu     "L
+@@ -1834,6 +1834,192 @@ state    real  LWUPBCLN         ij      misc        1         -      rhdu     "L
  state    real  LWDNB            ij      misc        1         -      rhdu     "LWDNB"                 "INSTANTANEOUS DOWNWELLING LONGWAVE FLUX AT BOTTOM"          "W m-2"
  state    real  LWDNBC           ij      misc        1         -      rhdu     "LWDNBC"                "INSTANTANEOUS DOWNWELLING CLEAR SKY LONGWAVE FLUX AT BOTTOM" "W m-2"
  state    real  LWDNBCLN         ij      misc        1         -      rhdu     "LWDNBCLN"              "INSTANTANEOUS DOWNWELLING CLEAN SKY LONGWAVE FLUX AT BOTTOM" "W m-2"
@@ -288,10 +288,10 @@ index 889a9285..dd964788 100644
  state    real  LWCF             ij      misc        1         -      r        "LWCF"                  "LONG WAVE CLOUD FORCING AT TOA"                      "W m-2"
  state    real  OLR              ij      misc        1         -      rh        "OLR"                   "TOA OUTGOING LONG WAVE"                              "W m-2"
 diff --git a/Registry/registry.chem b/Registry/registry.chem
-index caa9d745..583ebedc 100644
+index 01a92286..86c5f147 100644
 --- a/Registry/registry.chem
 +++ b/Registry/registry.chem
-@@ -1629,6 +1629,71 @@ state    real  l4aer          ikj=     misc        1         -      r        "L4
+@@ -1640,6 +1640,71 @@ state    real  l4aer          ikj=     misc        1         -      r        "L4
  state    real  l5aer          ikj=     misc        1         -      r        "L5AER"                 "legendre polynomial 5" "?"
  state    real  l6aer          ikj=     misc        1         -      r        "L6AER"                 "legendre polynomial 6" "?"
  state    real  l7aer          ikj=     misc        1         -      r        "L7AER"                 "legendre polynomial 7" "?"
@@ -363,7 +363,7 @@ index caa9d745..583ebedc 100644
  
  # chem variables for "cup" convective cloud parameterization
  state    integer  chem_cupflag   ikj   misc        1         -      -        "CHEM_CUPFLAG"          "flag for cup chemistry - positive when there is cup conv. cloud chemistry at ikj"
-@@ -3943,6 +4008,9 @@ state   real    meo2no2  ikjftb   chem        1         -     i0{12}rhusdf=(bdy_
+@@ -3954,6 +4019,9 @@ state   real    meo2no2  ikjftb   chem        1         -     i0{12}rhusdf=(bdy_
  state integer  STEPBIOE          -        misc        1         -      r      "STEPBIOE"             "NUMBER OF FUNDAMENTAL TIMESTEPS BETWEEN BIOGENIC EMIS CALLS"             "NA"
  state integer  STEPPHOT          -        misc     1         -      r        "STEPPHOT"              "NUMBER OF FUNDAMENTAL TIMESTEPS BETWEEN PHOTOLYSIS CALLS"             "NA"
  state integer  STEPCHEM          -        misc     1         -      r        "STEPCHEM"              "NUMBER OF FUNDAMENTAL TIMESTEPS BETWEEN CHEM MECH CALLS"             "NA"
@@ -373,7 +373,7 @@ index caa9d745..583ebedc 100644
  state integer  STEPFIREPL        -        misc     1         -      r        "STEPFIREPL"            "NUMBER OF FUNDAMENTAL TIMESTEPS BETWEEN CALLSTO PLUMERISE FIRE ROUTINE"             "NA"
  
                                                  
-@@ -3957,6 +4025,9 @@ rconfig   integer   io_style_emissions     namelist,chem        1              1
+@@ -3968,6 +4036,9 @@ rconfig   integer   io_style_emissions     namelist,chem        1              1
  rconfig   real    BIOEMDT                  namelist,chem        max_domains    0       h       "BIOEMDT"          "" ""
  rconfig   real    PHOTDT                   namelist,chem        max_domains    0       h       "PHOTDT"          ""  ""
  rconfig   real    CHEMDT                   namelist,chem        max_domains    0       h       "CHEMDT"          ""  ""
@@ -383,7 +383,7 @@ index caa9d745..583ebedc 100644
  rconfig   integer ne_area                  namelist,chem        1              41      irh     "ne_area"               ""      ""
  rconfig   integer kemit                    namelist,chem        1              9       irh     "kemit"                 ""      ""
  rconfig   integer nmegan                   namelist,chem        1              138     irh     "nmegan"                ""      ""
-@@ -4015,6 +4086,8 @@ rconfig   integer     chem_in_opt         namelist,chem          max_domains
+@@ -4026,6 +4097,8 @@ rconfig   integer     chem_in_opt         namelist,chem          max_domains
  rconfig   integer     phot_opt            namelist,chem          max_domains    0       rh    "phot_opt"            ""      ""
  rconfig   integer     gas_drydep_opt      namelist,chem          max_domains    1       rh    "gas_drydep_opt"      ""      ""
  rconfig   integer     aer_drydep_opt      namelist,chem          max_domains    1       rh    "aer_drydep_opt"      ""      ""
@@ -393,7 +393,7 @@ index caa9d745..583ebedc 100644
  rconfig   integer     aer_settling_opt    namelist,chem          max_domains    0       rh    "mosaic_aer_settling_opt"    ""      ""
  rconfig   integer     diagnostic_chem     namelist,chem          max_domains    1       rh    "diagnostic_chem"     ""      ""
 diff --git a/chem/chem_driver.F b/chem/chem_driver.F
-index f3c42e45..e5aa15fc 100755
+index b4909d59..7dac05c0 100755
 --- a/chem/chem_driver.F
 +++ b/chem/chem_driver.F
 @@ -248,6 +248,12 @@
@@ -419,7 +419,7 @@ index f3c42e45..e5aa15fc 100755
  
        REAL :: DAYI,DPL,FICE,FRAIN,HOUR,PLYR          &
       &       ,QI,QR,QW,RADT,TIMES,WC,TDUM,WMSK,RWMSK
-@@ -389,6 +398,22 @@
+@@ -391,6 +400,22 @@
       do_photstep = .true.
    ENDIF
  
@@ -442,7 +442,7 @@ index f3c42e45..e5aa15fc 100755
    if( ktau==1 ) then
       dtstepc = grid%dt
    else
-@@ -947,6 +972,167 @@
+@@ -954,6 +979,167 @@
             config_flags%chem_opt /= CO2_TRACER  .and. &
             config_flags%chem_opt /= GHG_TRACER ) then
           call wrf_debug(15,'calling optical driver')
@@ -610,7 +610,7 @@ index f3c42e45..e5aa15fc 100755
           call optical_driver (grid%id,curr_secs,grid%dt,config_flags,haveaer,         &
                chem,dz8w,rri,rh,                                                       &
                grid%h2oai,grid%h2oaj,                                                  &
-@@ -967,6 +1153,9 @@
+@@ -974,6 +1160,9 @@
                grid%tauaerlw6,grid%tauaerlw7,grid%tauaerlw8,grid%tauaerlw9,grid%tauaerlw10,  &
                grid%tauaerlw11,grid%tauaerlw12,grid%tauaerlw13,grid%tauaerlw14,grid%tauaerlw15,  &
                grid%tauaerlw16,    &
@@ -621,7 +621,7 @@ index f3c42e45..e5aa15fc 100755
                ims,ime, jms,jme, kms,kme,                                              &
                its,ite, jts,jte, kts,kte)
 diff --git a/chem/chemics_init.F b/chem/chemics_init.F
-index cda574a4..657a8e77 100755
+index 7a252896..62a5c3bd 100755
 --- a/chem/chemics_init.F
 +++ b/chem/chemics_init.F
 @@ -7,12 +7,35 @@
@@ -662,7 +662,7 @@ index cda574a4..657a8e77 100755
                 l2aer,l3aer,l4aer,l5aer,l6aer,l7aer,                  &
                 extaerlw1,extaerlw2,extaerlw3,extaerlw4,              &
                 extaerlw5,extaerlw6,extaerlw7,extaerlw8,              &
-@@ -79,7 +102,9 @@
+@@ -80,7 +103,9 @@
  
     IMPLICIT NONE
  
@@ -673,7 +673,7 @@ index cda574a4..657a8e77 100755
     INTEGER,      INTENT(IN   ) :: plumerisefire_frq
     INTEGER,      INTENT(IN   ) :: chem_in_opt
     INTEGER,      INTENT(INOUT) :: num_vert_mix
-@@ -119,6 +144,25 @@
+@@ -120,6 +145,25 @@
                                 dgnumwet_a1, dgnumwet_a2, dgnumwet_a3
  !-- end dgnum restart arrays
  
@@ -699,7 +699,7 @@ index cda574a4..657a8e77 100755
     REAL,  DIMENSION( ims:ime , kms:kme , jms:jme , 1:4 )   ,         &
            INTENT(INOUT   ) ::                                        &
                                 l2aer,l3aer,l4aer,l5aer,l6aer,l7aer
-@@ -141,7 +185,9 @@
+@@ -142,7 +186,9 @@
            INTENT(INOUT   ) ::                                        &
                                 ttday,tcosz,xlat,xlong
     real, INTENT (IN) :: g
@@ -709,8 +709,8 @@ index cda574a4..657a8e77 100755
 +!lm
     TYPE (grid_config_rec_type) , INTENT (in) ::     config_flags
     TYPE(domain) ,             INTENT (inout) ::     grid
-    
-@@ -537,6 +583,68 @@ ENDIF
+ 
+@@ -544,6 +590,68 @@ ENDIF
                  waer2(i,k,j) = 0.
                  waer3(i,k,j) = 0.
                  waer4(i,k,j) = 0.
@@ -1022,7 +1022,7 @@ index 81af457c..095b1465 100755
               ims,ime, jms,jme, kms,kme,                              &
               its,ite, jts,jte, kts,kte                               )
 diff --git a/dyn_em/module_first_rk_step_part1.F b/dyn_em/module_first_rk_step_part1.F
-index f5eb2673..2e5ff597 100644
+index 6623cab7..118156ab 100644
 --- a/dyn_em/module_first_rk_step_part1.F
 +++ b/dyn_em/module_first_rk_step_part1.F
 @@ -277,7 +277,14 @@ BENCH_START(rad_driver_tim)
@@ -1168,10 +1168,10 @@ index f5eb2673..2e5ff597 100644
       &        ,TAUAERlw3  =grid%tauaerlw3,  TAUAERlw4=grid%tauaerlw4    & 
       &        ,TAUAERlw5  =grid%tauaerlw5,  TAUAERlw6=grid%tauaerlw6    & 
 diff --git a/dyn_em/start_em.F b/dyn_em/start_em.F
-index 86b19fae..3ecd627c 100644
+index 520f86cd..b6f57ef4 100644
 --- a/dyn_em/start_em.F
 +++ b/dyn_em/start_em.F
-@@ -1825,8 +1825,12 @@ endif
+@@ -1821,8 +1821,12 @@ endif
           enddo
  
           CALL chem_init (grid%id,chem,emis_ant,scalar,grid%dt,grid%bioemdt,grid%photdt,     &
@@ -1186,7 +1186,7 @@ index 86b19fae..3ecd627c 100644
                           grid%plumerisefire_frq,z_at_w,grid%xlat,grid%xlong,g,           &
                           grid%aerwrf,config_flags,grid,            &
                           grid%alt,grid%t_1,grid%p,convfac,grid%ttday,grid%tcosz,         &
-@@ -1834,6 +1838,23 @@ endif
+@@ -1830,6 +1834,23 @@ endif
                           grid%tauaer1,grid%tauaer2,grid%tauaer3,grid%tauaer4,                   &
                           grid%gaer1,grid%gaer2,grid%gaer3,grid%gaer4,                           &
                           grid%waer1,grid%waer2,grid%waer3,grid%waer4,                           &
@@ -1211,10 +1211,10 @@ index 86b19fae..3ecd627c 100644
                           grid%extaerlw1,grid%extaerlw2,grid%extaerlw3,grid%extaerlw4,           &
                           grid%extaerlw5,grid%extaerlw6,grid%extaerlw7,grid%extaerlw8,           &
 diff --git a/phys/module_ra_rrtmg_lw.F b/phys/module_ra_rrtmg_lw.F
-index eb8023bc..c06d4c6f 100644
+index 6b5dc2d3..ade95073 100644
 --- a/phys/module_ra_rrtmg_lw.F
 +++ b/phys/module_ra_rrtmg_lw.F
-@@ -12007,7 +12007,7 @@ CONTAINS
+@@ -12009,7 +12009,7 @@ CONTAINS
              QV1D(K)=max(0.,QV1D(K))
           ENDDO
  
@@ -1223,7 +1223,7 @@ index eb8023bc..c06d4c6f 100644
              DO K=kts,kte
                 O31D(K)=O33D(I,K,J)
              ENDDO
-@@ -12397,7 +12397,9 @@ CONTAINS
+@@ -12399,7 +12399,9 @@ CONTAINS
           call inirad (o3mmr,plev,kts,nlay-1)
  
  ! Steven Cavallo: Changed to nlayers from kte+1
@@ -1234,7 +1234,7 @@ index eb8023bc..c06d4c6f 100644
           do k = kts, nlayers
              o3vmr(ncol,k) = o3mmr(k) * amdo
              if(k.le.kte)then
-@@ -12416,7 +12418,9 @@ CONTAINS
+@@ -12418,7 +12420,9 @@ CONTAINS
          endif
  
  ! output o3 for o3input=0
@@ -1246,10 +1246,10 @@ index eb8023bc..c06d4c6f 100644
                 O33D(I,K,J)=O31D(K)
              ENDDO
 diff --git a/phys/module_ra_rrtmg_sw.F b/phys/module_ra_rrtmg_sw.F
-index c0eb328a..2d8a8417 100644
+index 1149bf8c..287cfb9c 100644
 --- a/phys/module_ra_rrtmg_sw.F
 +++ b/phys/module_ra_rrtmg_sw.F
-@@ -10597,7 +10597,9 @@ CONTAINS
+@@ -10611,7 +10611,9 @@ CONTAINS
              QV1D(K)=max(0.,QV1D(K))
           ENDDO
  
@@ -1260,7 +1260,7 @@ index c0eb328a..2d8a8417 100644
              DO K=kts,kte
                 O31D(K)=O33D(I,K,J)
              ENDDO
-@@ -10918,7 +10920,9 @@ CONTAINS
+@@ -10932,7 +10934,9 @@ CONTAINS
  ! Get ozone profile including amount in extra layer above model top
           call inirad (o3mmr,plev,kts,kte)
  
@@ -1272,7 +1272,7 @@ index c0eb328a..2d8a8417 100644
              o3vmr(ncol,k) = o3mmr(k) * amdo
              if(k.le.kte)then
 diff --git a/phys/module_radiation_driver.F b/phys/module_radiation_driver.F
-index 924c8200..d50ca120 100644
+index 1421cbd3..1c6df613 100644
 --- a/phys/module_radiation_driver.F
 +++ b/phys/module_radiation_driver.F
 @@ -27,7 +27,14 @@ CONTAINS

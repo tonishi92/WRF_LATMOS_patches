@@ -1,6 +1,6 @@
-From 11a634b29d17e08873c31078b6c5cb00443dc87d Mon Sep 17 00:00:00 2001
-From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
-Date: Wed, 23 Nov 2022 12:03:34 +0100
+From 938c2608c6a6d34ffc5f8901d883a98ffbc21797 Mon Sep 17 00:00:00 2001
+From: tonishi92 <tatsuo.onishi@gmail.com>
+Date: Mon, 5 Aug 2024 18:49:09 +0200
 Subject: [PATCH 31/52] (Debug) module_ra_rrtmg_sw.F: floating invalid error
 
 TYPE : Debug
@@ -17,38 +17,24 @@ Description:
 List of modified files:
    * phys/module_ra_rrtmg_sw.F
 ---
- phys/module_ra_rrtmg_sw.F | 101 +++++++++++++++++++++++++++++++++-----
- 1 file changed, 90 insertions(+), 11 deletions(-)
+ phys/module_ra_rrtmg_sw.F | 84 ++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 75 insertions(+), 9 deletions(-)
 
 diff --git a/phys/module_ra_rrtmg_sw.F b/phys/module_ra_rrtmg_sw.F
-index 2d8a8417..48e5abce 100644
+index 287cfb9c..cfeba640 100644
 --- a/phys/module_ra_rrtmg_sw.F
 +++ b/phys/module_ra_rrtmg_sw.F
-@@ -8361,7 +8361,9 @@
- !      real(kind=rb), intent(out) :: pvsfu(:)
+@@ -8363,6 +8363,9 @@
  
  ! ------- Local -------
--
+ 
 +!TO2
 +      character(len=200) :: msg
 +!TO2
        logical :: lrtchkclr(nlayers),lrtchkcld(nlayers)
  
        integer(kind=im)  :: klev
-@@ -8552,6 +8554,12 @@
- 
- ! Clear-sky optical parameters including aerosols
-                ztauc(jk) = ztaur(ikl,iw) + ztaug(ikl,iw) + ptaua(ikl,ibm)
-+               !!!TO2
-+               !!write(msg,'("checking 3 : jk, ikl, iw, ztauc(jk), ztaur(ikl,iw), ztaug(ikl,iw), ptaua(ikl,ibm) =",3i4,4f10.2)')  &
-+               !!                      jk, ikl, iw, ztauc(jk), ztaur(ikl,iw), ztaug(ikl,iw), ptaua(ikl,ibm) 
-+               !!!e.g. output          50, 1., 1.0,     0.00,     1.00,       0.00
-+               !!call wrf_message(msg)
-+               !!!TO2
-                zomcc(jk) = ztaur(ikl,iw) * 1.0_rb + ptaua(ikl,ibm) * pomga(ikl,ibm)
-                zgcc(jk) = pasya(ikl,ibm) * pomga(ikl,ibm) * ptaua(ikl,ibm) / zomcc(jk)
-                zomcc(jk) = zomcc(jk) / ztauc(jk)
-@@ -8603,8 +8611,37 @@
+@@ -8606,8 +8609,37 @@
                 zf = zgcc(jk) * zgcc(jk)
                 zwf = zomcc(jk) * zf
                 ztauc(jk) = (1.0_rb - zwf) * ztauc(jk)
@@ -85,11 +71,11 @@ index 2d8a8417..48e5abce 100644
 +               !zgcc (jk) = (zgcc(jk) - zf) / (1.0_rb - zf)
 +               zgcc (jk) = zgcc(jk) / (1.0_rb + zgcc(jk))
 +               !TO2 end
+             enddo
  
  
- ! Total sky optical parameters (cloud properties already delta-scaled)
-@@ -8612,9 +8649,22 @@
-                if (icpr .ge. 1) then
+@@ -8618,9 +8650,22 @@
+                   ikl=klev+1-jk
                    ztauo(jk) = ztauc(jk) + ptaucmc(ikl,iw)
                    zomco(jk) = ztauc(jk) * zomcc(jk) + ptaucmc(ikl,iw) * pomgcmc(ikl,iw) 
 -                  zgco (jk) = (ptaucmc(ikl,iw) * pomgcmc(ikl,iw) * pasycmc(ikl,iw) + &
@@ -111,10 +97,10 @@ index 2d8a8417..48e5abce 100644
 +                    zomco(jk) = zomco(jk) / ztauo(jk)
 +                  endif
 +                  !TO2 end
+             enddo
  
  ! Total sky optical parameters (if cloud properties not delta scaled)
- !   Use this code if cloud properties are not derived in rrtmg_sw_cldprop       
-@@ -8631,8 +8681,18 @@
+@@ -8640,8 +8685,18 @@
                    zf = zgco(jk) * zgco(jk)
                    zwf = zomco(jk) * zf
                    ztauo(jk) = (1._rb - zwf) * ztauo(jk)
@@ -132,28 +118,10 @@ index 2d8a8417..48e5abce 100644
 +                  !zgco (jk) = (zgco(jk) - zf) / (1.0_rb - zf)
 +                  zgco (jk) = zgco(jk) / (1.0_rb + zgco(jk))
 +                  !TO2 end
+             enddo
                 endif 
  
- ! End of layer loop
-@@ -11344,8 +11404,16 @@ CONTAINS
-    IF ( AER_RA_FEEDBACK == 1) then
-       do nb = 1, nbndsw
-          wavemid(nb)=0.5*(wavemin(nb)+wavemax(nb))  ! um
--      do k = kts,kte      !wig
-+        do k = kts,kte      !wig
-+        !TO2 do k = kts,kte+1
-+        !TO2   if(k.eq.kte+1.and.tauaer300(i,k,j)*tauaer999(i,k,j).gt.0.0) then 
-+        !TO2   write(msg,'("checking 3 : nb, k, size(tauaer300(i,k,j),dim=2),tauaer300(i,k,j), tauaer999(i,k,j), thresh  =",3i4,3f15.2)')  &
-+        !TO2                         nb, k, size(tauaer300,dim=2), tauaer300(i,k,j), tauaer300(i,k-1,j), thresh 
-+        !TO2   call wrf_message(msg)
-+        !TO2   endif
-+        !TO2
- 
-+        
- ! convert optical properties at 300,400,600, and 999 to conform to the band wavelengths
- ! tauaer - use angstrom exponent
-         if(tauaer300(i,k,j).gt.thresh .and. tauaer999(i,k,j).gt.thresh) then
-@@ -11370,6 +11438,12 @@ CONTAINS
+@@ -11384,6 +11439,12 @@ CONTAINS
             if(asmaer(ncol,k,nb).ge.1.0) asmaer(ncol,k,nb)=1.0
          endif
        end do ! k
@@ -166,7 +134,7 @@ index 2d8a8417..48e5abce 100644
        end do ! nb
  
  !wig beg
-@@ -11411,8 +11485,13 @@ CONTAINS
+@@ -11425,8 +11486,13 @@ CONTAINS
              end do
  
              call wrf_message("Diagnostics 4: k, ssaal, asyal, taual")

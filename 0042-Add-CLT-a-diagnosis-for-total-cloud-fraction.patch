@@ -1,4 +1,4 @@
-From fee5a955fc6625e1c2fbc9a95b57bef47ea47dbc Mon Sep 17 00:00:00 2001
+From 1df01aca102cab7cc1566900b9ea601d4669bec9 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Mon, 12 Dec 2022 23:20:16 +0100
 Subject: [PATCH 42/52] Add CLT, a diagnosis for total cloud fraction
@@ -17,10 +17,10 @@ Modified files:
  3 files changed, 45 insertions(+)
 
 diff --git a/Registry/Registry.EM_COMMON b/Registry/Registry.EM_COMMON
-index dd964788..ed9db415 100644
+index 4733b416..3faa38a9 100644
 --- a/Registry/Registry.EM_COMMON
 +++ b/Registry/Registry.EM_COMMON
-@@ -1363,6 +1363,7 @@ state   real    tstar          ij      misc         1         -      r        "T
+@@ -1383,6 +1383,7 @@ state   real    tstar          ij      misc         1         -      r        "T
  state   real    lnterms        ikj     misc         1         -      r        "LNTERMS"        "Liquid+ice+1 ln term for cloud fraction" ""
  state   real    lnint          ij      misc         1         -      r        "LNINT"          "Integrated ln term for cloud fraction" ""
  #BSINGH -  adde CuP related variables -ENDS
@@ -29,7 +29,7 @@ index dd964788..ed9db415 100644
  
  # Other Misc State Variables                                            
 diff --git a/dyn_em/module_first_rk_step_part1.F b/dyn_em/module_first_rk_step_part1.F
-index 2e5ff597..112b4b68 100644
+index 118156ab..c9a1fa57 100644
 --- a/dyn_em/module_first_rk_step_part1.F
 +++ b/dyn_em/module_first_rk_step_part1.F
 @@ -362,6 +362,7 @@ BENCH_START(rad_driver_tim)
@@ -41,7 +41,7 @@ index 2e5ff597..112b4b68 100644
       &        ,IDS=ids,IDE=ide, JDS=jds,JDE=jde, KDS=kds,KDE=kde          &
       &        ,IMS=ims,IME=ime, JMS=jms,JME=jme, KMS=kms,KME=kme          &
 diff --git a/phys/module_radiation_driver.F b/phys/module_radiation_driver.F
-index d50ca120..1805ec00 100644
+index 1c6df613..de73886e 100644
 --- a/phys/module_radiation_driver.F
 +++ b/phys/module_radiation_driver.F
 @@ -78,6 +78,7 @@ CONTAINS

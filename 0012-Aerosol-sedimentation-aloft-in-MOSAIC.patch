@@ -1,4 +1,4 @@
-From 04e2d3470b7c3cf186a13171d508c2a9f3961021 Mon Sep 17 00:00:00 2001
+From b6ecdf174d86c31b1adf81da7345d9011591606e Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 12:39:52 +0100
 Subject: [PATCH 12/52] Aerosol sedimentation aloft in MOSAIC
@@ -33,10 +33,10 @@ is added in chem/depend.chem
  create mode 100755 chem/module_mosaic_settling.F
 
 diff --git a/Registry/registry.chem b/Registry/registry.chem
-index cf4142d3..028b7bb1 100644
+index 03d5bc0f..fd8285a4 100644
 --- a/Registry/registry.chem
 +++ b/Registry/registry.chem
-@@ -3867,6 +3867,8 @@ rconfig   integer     chem_in_opt         namelist,chem          max_domains
+@@ -3878,6 +3878,8 @@ rconfig   integer     chem_in_opt         namelist,chem          max_domains
  rconfig   integer     phot_opt            namelist,chem          max_domains    0       rh    "phot_opt"            ""      ""
  rconfig   integer     gas_drydep_opt      namelist,chem          max_domains    1       rh    "gas_drydep_opt"      ""      ""
  rconfig   integer     aer_drydep_opt      namelist,chem          max_domains    1       rh    "aer_drydep_opt"      ""      ""

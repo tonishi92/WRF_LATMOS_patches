@@ -1,4 +1,4 @@
-From a48ef81f2fd22132bd791c252200c40c0d413268 Mon Sep 17 00:00:00 2001
+From 8e79ba1cf3ec69bbda09a5b633070dcb977ed7ed Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Tue, 17 May 2016 18:40:45 +0200
 Subject: [PATCH 09/52] Add lightning parameterization for KF-CuP cumuli
@@ -18,7 +18,7 @@ options require further modifications to the code)
  6 files changed, 308 insertions(+), 8 deletions(-)
 
 diff --git a/chem/chemics_init.F b/chem/chemics_init.F
-index 59f05468..4a3dd0a6 100755
+index 9856ba9d..3df385b2 100755
 --- a/chem/chemics_init.F
 +++ b/chem/chemics_init.F
 @@ -1,4 +1,6 @@
@@ -28,7 +28,7 @@ index 59f05468..4a3dd0a6 100755
  !
     subroutine chem_init (id,chem,emis_ant,scalar,dt,bioemdt,photdt,chemdt,stepbioe, &
                 stepphot,stepchem,stepfirepl,plumerisefire_frq,z_at_w,xlat,xlong,    &
-@@ -386,6 +388,13 @@ call wrf_message("**************************************************************
+@@ -387,6 +389,13 @@ call wrf_message("**************************************************************
        endif
     endif
  
@@ -43,7 +43,7 @@ index 59f05468..4a3dd0a6 100755
     if ( config_flags%cu_physics == 5 .OR. config_flags%cu_physics == 3) then
     if ( config_flags%cu_diag == 0) then
 diff --git a/dyn_em/start_em.F b/dyn_em/start_em.F
-index 941b64a1..86b19fae 100644
+index 97a5bfcd..520f86cd 100644
 --- a/dyn_em/start_em.F
 +++ b/dyn_em/start_em.F
 @@ -1,5 +1,7 @@
@@ -55,7 +55,7 @@ index 941b64a1..86b19fae 100644
     SUBROUTINE start_domain_em ( grid, allowed_to_read &
  ! Actual arguments generated from Registry
  # include "dummy_new_args.inc"
-@@ -1334,6 +1336,9 @@ endif
+@@ -1326,6 +1328,9 @@ endif
                          ,ltngacttime=grid%ltngacttime                                             &
                          ,iccg_prescribed_num=config_flags%iccg_prescribed_num                     &
                          ,iccg_prescribed_den=config_flags%iccg_prescribed_den                     &
@@ -66,7 +66,7 @@ index 941b64a1..86b19fae 100644
                      ! Order dependent args for domain, mem, and tile dims
                          ,ids=ids, ide=ide, jds=jds, jde=jde, kds=kds, kde=kde             &
 diff --git a/phys/module_diagnostics_driver.F b/phys/module_diagnostics_driver.F
-index 42c29f49..00ba2e95 100644
+index aa583b50..44950ebd 100644
 --- a/phys/module_diagnostics_driver.F
 +++ b/phys/module_diagnostics_driver.F
 @@ -1,5 +1,7 @@
@@ -78,7 +78,7 @@ index 42c29f49..00ba2e95 100644
  MODULE module_diagnostics_driver
  
  CONTAINS
-@@ -206,6 +208,10 @@ CONTAINS
+@@ -205,6 +207,10 @@ CONTAINS
            ! Scheme specific prognostics
              grid%ktop_deep, grid%refl_10cm,                    &
              domain_get_current_time( grid ),                   &

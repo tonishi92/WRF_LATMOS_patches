@@ -1,4 +1,4 @@
-From 59cf005b0640f652ce034d4752f09b3cc363f33f Mon Sep 17 00:00:00 2001
+From 8b7c4f496bf6b3e6b603c22ce1fdda8995a735f4 Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Wed, 5 Oct 2022 12:55:57 +0200
 Subject: [PATCH 24/52] Biomass Burning Emissions
@@ -56,7 +56,7 @@ Registry/registry.chem
  4 files changed, 217 insertions(+), 57 deletions(-)
 
 diff --git a/Registry/registry.chem b/Registry/registry.chem
-index dc00f8ca..30de3b69 100644
+index 01f36c73..b5cda202 100644
 --- a/Registry/registry.chem
 +++ b/Registry/registry.chem
 @@ -442,6 +442,10 @@ state    real  ebu_terp     ikjf     ebu           1         Z        -      "eb
@@ -81,7 +81,7 @@ index dc00f8ca..30de3b69 100644
  state    real  mean_fct_agtf      ij      misc      1         -        i07h       "mean_fct_agtf"         "mean fraction of tropical forest"  "?"
  state    real  mean_fct_agef      ij      misc      1         -        i07h       "mean_fct_agef"         "mean fraction of extra tropical forest"  "?"
  state    real  mean_fct_agsv      ij      misc      1         -        i07h       "mean_fct_agsv"         "mean fraction of savanna"  "?"
-@@ -4114,6 +4122,9 @@ rconfig   integer     seas_updates        namelist,chem          max_domains
+@@ -4129,6 +4137,9 @@ rconfig   integer     seas_updates        namelist,chem          max_domains
  rconfig   integer     bio_emiss_opt       namelist,chem          max_domains    0       rh    "bio_emiss_opt"       ""      ""
  rconfig   integer     biomass_burn_opt    namelist,chem          max_domains    0       rh    "biomass_burn_opt"    ""      ""
  rconfig   integer     plumerisefire_frq   namelist,chem          max_domains    180     rh    "plumerisefire_frq"   ""      ""
@@ -91,7 +91,7 @@ index dc00f8ca..30de3b69 100644
  rconfig   integer     emiss_inpt_opt      namelist,chem          max_domains    1       rh    "emiss_inpt_opt"      ""      ""
  rconfig   integer     gas_bc_opt          namelist,chem          max_domains    1       rh    "gas_bc_opt"          ""      ""
  rconfig   integer     gas_ic_opt          namelist,chem          max_domains    1       rh    "gas_ic_opt"          ""      ""
-@@ -4260,12 +4271,22 @@ package   cb05_sorg_vbs_aq_kpp          chem_opt==132                 -
+@@ -4276,12 +4287,22 @@ package   cb05_sorg_vbs_aq_kpp          chem_opt==132                 -
  #cbmz_mosaic_kpp (chem_opt=170) is for mosaic runs with sorgam soa species: coded by Manish Shrivastava on 12/8/2009
  package   cbmz_mosaic_kpp chem_opt==170               -             chem:so2,sulf,no2,no,o3,hno3,h2o2,ald,hcho,op1,op2,ora1,ora2,nh3,n2o5,no3,pan,eth,co,ol2,olt,oli,tol,xyl,hono,hno4,ket,mgly,onit,csl,iso,ho,ho2,hcl,ch3o2,ethp,ch3oh,c2h5oh,par,to2,cro,open,op3,c2o3,ro2,ano2,nap,xo2,xpar,isoprd,isopp,isopn,ch4,aro1,aro2,alk1,ole1,api1,api2,lim1,lim2,api,lim,isopo2,so4_a01,no3_a01,cl_a01,nh4_a01,na_a01,oin_a01,oc_a01,bc_a01,hysw_a01,water_a01,aro1_a01,aro2_a01,alk1_a01,ole1_a01,api1_a01,api2_a01,lim1_a01,lim2_a01,num_a01,so4_a02,no3_a02,cl_a02,nh4_a02,na_a02,oin_a02,oc_a02,bc_a02,hysw_a02,water_a02,aro1_a02,aro2_a02,alk1_a02,ole1_a02,api1_a02,api2_a02,lim1_a02,lim2_a02,num_a02,so4_a03,no3_a03,cl_a03,nh4_a03,na_a03,oin_a03,oc_a03,bc_a03,hysw_a03,water_a03,aro1_a03,aro2_a03,alk1_a03,ole1_a03,api1_a03,api2_a03,lim1_a03,lim2_a03,num_a03,so4_a04,no3_a04,cl_a04,nh4_a04,na_a04,oin_a04,oc_a04,bc_a04,hysw_a04,water_a04,aro1_a04,aro2_a04,alk1_a04,ole1_a04,api1_a04,api2_a04,lim1_a04,lim2_a04,num_a04,so4_a05,no3_a05,cl_a05,nh4_a05,na_a05,oin_a05,oc_a05,bc_a05,hysw_a05,water_a05,aro1_a05,aro2_a05,alk1_a05,ole1_a05,api1_a05,api2_a05,lim1_a05,lim2_a05,num_a05,so4_a06,no3_a06,cl_a06,nh4_a06,na_a06,oin_a06,oc_a06,bc_a06,hysw_a06,water_a06,aro1_a06,aro2_a06,alk1_a06,ole1_a06,api1_a06,api2_a06,lim1_a06,lim2_a06,num_a06,so4_a07,no3_a07,cl_a07,nh4_a07,na_a07,oin_a07,oc_a07,bc_a07,hysw_a07,water_a07,aro1_a07,aro2_a07,alk1_a07,ole1_a07,api1_a07,api2_a07,lim1_a07,lim2_a07,num_a07,so4_a08,no3_a08,cl_a08,nh4_a08,na_a08,oin_a08,oc_a08,bc_a08,hysw_a08,water_a08,aro1_a08,aro2_a08,alk1_a08,ole1_a08,api1_a08,api2_a08,lim1_a08,lim2_a08,num_a08,ca_a01,ca_a02,ca_a03,ca_a04,ca_a05,ca_a06,ca_a07,ca_a08,co3_a01,co3_a02,co3_a03,co3_a04,co3_a05,co3_a06,co3_a07,co3_a08
  
@@ -114,7 +114,7 @@ index dc00f8ca..30de3b69 100644
  package mozart_mosaic_4bin_kpp    chem_opt==201   -                        chem:o3,o1d_cb4,o,no,no2,no3,n2o5,hno3,hno4,so2,ho,ho2,h2o2,sulf,co,hcho,hcooh,c2h2,hoch2oo,ch3ooh,ch3o2,ch4,h2,eo2,ch3cooh,c2h4,n2o,ch3oh,aco3,acet,mgly,paa,gly,c3h6ooh,pan,mpan,macr,mvk,c3h6,etooh,prooh,acetp,xooh,onitr,isooh,acetol,glyald,mek,eto2,open,alkooh,mekooh,tolooh,terpooh,ald,mco3,c2h5oh,eo,c2h6,c3h8,pro2,po2,aceto2,bigene,bigalk,eneo2,alko2,isopr,iso2,mvko2,mvkooh,hydrald,xo2,apin,bpin,limon,myrc,bcary,terprod1,terprod2,terp2o2,terp2ooh,nterpo2,terpo2,tol,cres,to2,onit,isopn,dms,mbo,mboo2,hmprop,hmpropo2,mboooh,mbono3o2,nh3,nume,den,voca,vocbb,smpa,smpbb,biog1_c,biog1_o,benzene,phen,bepomuc,benzo2,pheno2,pheno,phenooh,c6h5o2,c6h5ooh,benzooh,bigald1,bigald2,bigald3,bigald4,malo2,tepomuc,bzoo,bzooh,bald,acbzo2,dicarbo2,mdialo2,xyl,xylol,xylolo2,xylolooh,xyleno2,xylenooh,pbznit,hono,meko2,so4_a01,no3_a01,smpa_a01,smpbb_a01,glysoa_sfc_a01,biog1_c_a01,biog1_o_a01,cl_a01,co3_a01,nh4_a01,na_a01,ca_a01,oin_a01,oc_a01,bc_a01,hysw_a01,water_a01,num_a01,so4_a02,no3_a02,smpa_a02,smpbb_a02,glysoa_sfc_a02,biog1_c_a02,biog1_o_a02,cl_a02,co3_a02,nh4_a02,na_a02,ca_a02,oin_a02,oc_a02,bc_a02,hysw_a02,water_a02,num_a02,so4_a03,no3_a03,smpa_a03,smpbb_a03,glysoa_sfc_a03,biog1_c_a03,biog1_o_a03,cl_a03,co3_a03,nh4_a03,na_a03,ca_a03,oin_a03,oc_a03,bc_a03,hysw_a03,water_a03,num_a03,so4_a04,no3_a04,smpa_a04,smpbb_a04,glysoa_sfc_a04,biog1_c_a04,biog1_o_a04,cl_a04,co3_a04,nh4_a04,na_a04,ca_a04,oin_a04,oc_a04,bc_a04,hysw_a04,water_a04,num_a04
  # complete aq-phase chem. and wet scavenging version with MOZART, HONO, VOC reactivity + VBS SOA
  package   mozart_mosaic_4bin_aq_kpp  chem_opt==202           -             chem:o3,o1d_cb4,o,no,no2,no3,n2o5,hno3,hno4,so2,ho,ho2,h2o2,sulf,co,hcho,hcooh,c2h2,hoch2oo,ch3ooh,ch3o2,ch4,h2,eo2,ch3cooh,c2h4,n2o,ch3oh,aco3,acet,mgly,paa,gly,c3h6ooh,pan,mpan,macr,mvk,c3h6,etooh,prooh,acetp,xooh,onitr,isooh,acetol,glyald,mek,eto2,open,alkooh,mekooh,tolooh,terpooh,ald,mco3,c2h5oh,eo,c2h6,c3h8,pro2,po2,aceto2,bigene,bigalk,eneo2,alko2,isopr,iso2,mvko2,mvkooh,hydrald,xo2,apin,bpin,limon,myrc,bcary,terprod1,terprod2,terp2o2,terp2ooh,nterpo2,terpo2,tol,cres,to2,onit,isopn,dms,mbo,mboo2,hmprop,hmpropo2,mboooh,mbono3o2,nh3,nume,den,cvasoaX,cvasoa1,cvasoa2,cvasoa3,cvasoa4,cvbsoaX,cvbsoa1,cvbsoa2,cvbsoa3,cvbsoa4,benzene,phen,bepomuc,benzo2,pheno2,pheno,phenooh,c6h5o2,c6h5ooh,benzooh,bigald1,bigald2,bigald3,bigald4,malo2,tepomuc,bzoo,bzooh,bald,acbzo2,dicarbo2,mdialo2,xyl,xylol,xylolo2,xylolooh,xyleno2,xylenooh,pbznit,hono,meko2,so4_a01,no3_a01,asoaX_a01,asoa1_a01,asoa2_a01,asoa3_a01,asoa4_a01,bsoaX_a01,bsoa1_a01,bsoa2_a01,bsoa3_a01,bsoa4_a01,glysoa_r1_a01,glysoa_r2_a01,glysoa_sfc_a01,glysoa_nh4_a01,glysoa_oh_a01,cl_a01,co3_a01,nh4_a01,na_a01,ca_a01,oin_a01,oc_a01,bc_a01,hysw_a01,water_a01,num_a01,so4_a02,no3_a02,asoaX_a02,asoa1_a02,asoa2_a02,asoa3_a02,asoa4_a02,bsoaX_a02,bsoa1_a02,bsoa2_a02,bsoa3_a02,bsoa4_a02,glysoa_r1_a02,glysoa_r2_a02,glysoa_sfc_a02,glysoa_nh4_a02,glysoa_oh_a02,cl_a02,co3_a02,nh4_a02,na_a02,ca_a02,oin_a02,oc_a02,bc_a02,hysw_a02,water_a02,num_a02,so4_a03,no3_a03,asoaX_a03,asoa1_a03,asoa2_a03,asoa3_a03,asoa4_a03,bsoaX_a03,bsoa1_a03,bsoa2_a03,bsoa3_a03,bsoa4_a03,glysoa_r1_a03,glysoa_r2_a03,glysoa_sfc_a03,glysoa_nh4_a03,glysoa_oh_a03,cl_a03,co3_a03,nh4_a03,na_a03,ca_a03,oin_a03,oc_a03,bc_a03,hysw_a03,water_a03,num_a03,so4_a04,no3_a04,asoaX_a04,asoa1_a04,asoa2_a04,asoa3_a04,asoa4_a04,bsoaX_a04,bsoa1_a04,bsoa2_a04,bsoa3_a04,bsoa4_a04,glysoa_r1_a04,glysoa_r2_a04,glysoa_sfc_a04,glysoa_nh4_a04,glysoa_oh_a04,cl_a04,co3_a04,nh4_a04,na_a04,ca_a04,oin_a04,oc_a04,bc_a04,hysw_a04,water_a04,num_a04,so4_cw01,no3_cw01,asoaX_cw01,asoa1_cw01,asoa2_cw01,asoa3_cw01,asoa4_cw01,bsoaX_cw01,bsoa1_cw01,bsoa2_cw01,bsoa3_cw01,bsoa4_cw01,glysoa_r1_cw01,glysoa_r2_cw01,glysoa_sfc_cw01,glysoa_nh4_cw01,glysoa_oh_cw01,cl_cw01,co3_cw01,nh4_cw01,na_cw01,ca_cw01,oin_cw01,oc_cw01,bc_cw01,num_cw01,so4_cw02,no3_cw02,asoaX_cw02,asoa1_cw02,asoa2_cw02,asoa3_cw02,asoa4_cw02,bsoaX_cw02,bsoa1_cw02,bsoa2_cw02,bsoa3_cw02,bsoa4_cw02,glysoa_r1_cw02,glysoa_r2_cw02,glysoa_sfc_cw02,glysoa_nh4_cw02,glysoa_oh_cw02,cl_cw02,co3_cw02,nh4_cw02,na_cw02,ca_cw02,oin_cw02,oc_cw02,bc_cw02,num_cw02,so4_cw03,no3_cw03,asoaX_cw03,asoa1_cw03,asoa2_cw03,asoa3_cw03,asoa4_cw03,bsoaX_cw03,bsoa1_cw03,bsoa2_cw03,bsoa3_cw03,bsoa4_cw03,glysoa_r1_cw03,glysoa_r2_cw03,glysoa_sfc_cw03,glysoa_nh4_cw03,glysoa_oh_cw03,cl_cw03,co3_cw03,nh4_cw03,na_cw03,ca_cw03,oin_cw03,oc_cw03,bc_cw03,num_cw03,so4_cw04,no3_cw04,asoaX_cw04,asoa1_cw04,asoa2_cw04,asoa3_cw04,asoa4_cw04,bsoaX_cw04,bsoa1_cw04,bsoa2_cw04,bsoa3_cw04,bsoa4_cw04,glysoa_r1_cw04,glysoa_r2_cw04,glysoa_sfc_cw04,glysoa_nh4_cw04,glysoa_oh_cw04,cl_cw04,co3_cw04,nh4_cw04,na_cw04,ca_cw04,oin_cw04,oc_cw04,bc_cw04,num_cw04
-@@ -4378,6 +4399,7 @@ package   biomassb      biomass_burn_opt==1             -          state:mean_fc
+@@ -4398,6 +4419,7 @@ package   biomassb      biomass_burn_opt==1             -          state:mean_fc
  package   biomassb_mozc      biomass_burn_opt==2             -          state:mean_fct_agtf,mean_fct_agef,mean_fct_agsv,mean_fct_aggr,firesize_agtf,firesize_agef,firesize_agsv,firesize_aggr;ebu:ebu_co,ebu_no,ebu_no2,ebu_bigalk,ebu_bigene,ebu_c2h4,ebu_c2h5oh,ebu_c2h6,ebu_c3h6,ebu_c3h8,ebu_ch2o,ebu_ch3cho,ebu_ch3coch3,ebu_ch3oh,ebu_mek,ebu_so2,ebu_toluene,ebu_nh3,ebu_oc,ebu_bc,ebu_pm25,ebu_pm10,ebu_open,ebu_c10h16,ebu_mgly,ebu_ch3cooh,ebu_cres,ebu_glyald,ebu_gly,ebu_acetol,ebu_isop,ebu_macr,ebu_mvk;ebu_in:ebu_in_co,ebu_in_no,ebu_in_bigalk,ebu_in_bigene,ebu_in_c2h4,ebu_in_c2h5oh,ebu_in_c2h6,ebu_in_c3h6,ebu_in_c3h8,ebu_in_ch2o,ebu_in_ch3cho,ebu_in_ch3coch3,ebu_in_ch3oh,ebu_in_mek,ebu_in_so2,ebu_in_toluene,ebu_in_nh3,ebu_in_no2,ebu_in_open,ebu_in_c10h16,ebu_in_mgly,ebu_in_ch3cooh,ebu_in_cres,ebu_in_glyald,ebu_in_gly,ebu_in_acetol,ebu_in_isop,ebu_in_macr,ebu_in_mvk,ebu_in_pm25,ebu_in_pm10,ebu_in_oc,ebu_in_bc
  package   biomassb_moz       biomass_burn_opt==3             -          state:mean_fct_agtf,mean_fct_agef,mean_fct_agsv,mean_fct_aggr,firesize_agtf,firesize_agef,firesize_agsv,firesize_aggr;ebu:ebu_co,ebu_no,ebu_no2,ebu_bigalk,ebu_bigene,ebu_c2h4,ebu_c2h5oh,ebu_c2h6,ebu_c3h6,ebu_c3h8,ebu_ch2o,ebu_ch3cho,ebu_ch3coch3,ebu_ch3oh,ebu_mek,ebu_so2,ebu_toluene,ebu_nh3,ebu_open,ebu_c10h16,ebu_mgly,ebu_ch3cooh,ebu_cres,ebu_glyald,ebu_gly,ebu_acetol,ebu_isop,ebu_macr,ebu_mvk;ebu_in:ebu_in_co,ebu_in_no,ebu_in_bigalk,ebu_in_bigene,ebu_in_c2h4,ebu_in_c2h5oh,ebu_in_c2h6,ebu_in_c3h6,ebu_in_c3h8,ebu_in_ch2o,ebu_in_ch3cho,ebu_in_ch3coch3,ebu_in_ch3oh,ebu_in_mek,ebu_in_so2,ebu_in_toluene,ebu_in_nh3,ebu_in_no2,ebu_in_open,ebu_in_c10h16,ebu_in_mgly,ebu_in_ch3cooh,ebu_in_cres,ebu_in_glyald,ebu_in_gly,ebu_in_acetol,ebu_in_isop,ebu_in_macr,ebu_in_mvk
  package   biomassb_t1_mozcart   biomass_burn_opt==4          -          state:mean_fct_agtf,mean_fct_agef,mean_fct_agsv,mean_fct_aggr,firesize_agtf,firesize_agef,firesize_agsv,firesize_aggr;ebu:ebu_co,ebu_no,ebu_no2,ebu_bigalk,ebu_bigene,ebu_c2h4,ebu_c2h5oh,ebu_c2h6,ebu_c3h6,ebu_c3h8,ebu_ch2o,ebu_ch3cho,ebu_ch3coch3,ebu_ch3oh,ebu_mek,ebu_so2,ebu_toluene,ebu_nh3,ebu_oc,ebu_bc,ebu_pm25,ebu_pm10,ebu_mgly,ebu_ch3cooh,ebu_cres,ebu_glyald,ebu_acetol,ebu_isop,ebu_macr,ebu_mvk,ebu_apin,ebu_benzene,ebu_ch3cn,ebu_hcn,ebu_hcooh,ebu_c2h2,ebu_dms,ebu_hpald,ebu_xylenes;ebu_in:ebu_in_co,ebu_in_no,ebu_in_bigalk,ebu_in_bigene,ebu_in_c2h4,ebu_in_c2h5oh,ebu_in_c2h6,ebu_in_c3h6,ebu_in_c3h8,ebu_in_ch2o,ebu_in_ch3cho,ebu_in_ch3coch3,ebu_in_ch3oh,ebu_in_mek,ebu_in_so2,ebu_in_toluene,ebu_in_nh3,ebu_in_no2,ebu_in_mgly,ebu_in_ch3cooh,ebu_in_cres,ebu_in_glyald,ebu_in_acetol,ebu_in_isop,ebu_in_macr,ebu_in_mvk,ebu_in_pm25,ebu_in_pm10,ebu_in_oc,ebu_in_bc,ebu_in_apin,ebu_in_benzene,ebu_in_ch3cn,ebu_in_hcn,ebu_in_hcooh,ebu_in_c2h2,ebu_in_dms,ebu_in_hpald,ebu_in_xylenes
@@ -123,10 +123,10 @@ index dc00f8ca..30de3b69 100644
  # GHG biomass burning
  package   biomassb_ghg  biomass_burn_opt==5          -             state::mean_fct_agtf,mean_fct_agef,mean_fct_agsv,mean_fct_aggr,firesize_agtf,firesize_agef,firesize_agsv,firesize_aggr;ebu:ebu_co,ebu_co2,ebu_ch4;ebu_in:ebu_in_co,ebu_in_co2,ebu_in_ch4
 diff --git a/chem/emissions_driver.F b/chem/emissions_driver.F
-index e2af4b2f..f9ace758 100644
+index 96a36419..ae258bea 100644
 --- a/chem/emissions_driver.F
 +++ b/chem/emissions_driver.F
-@@ -645,6 +645,9 @@ CONTAINS
+@@ -696,6 +696,9 @@ real, save :: freq_industry(24)    = &
             config_flags%biomass_burn_opt == BIOMASSB_MOZ  .OR. &
             config_flags%biomass_burn_opt == BIOMASSB_SAPRC .OR. &
             config_flags%biomass_burn_opt == BIOMASSB_GHG  .OR. &
@@ -136,7 +136,7 @@ index e2af4b2f..f9ace758 100644
             config_flags%biomass_burn_opt == BIOMASSB ) then
          IF ( ktau==1 ) then
             do_plumerisefire = .true.
-@@ -701,6 +704,9 @@ CONTAINS
+@@ -752,6 +755,9 @@ real, save :: freq_industry(24)    = &
  !
         call add_emis_burn(id,dtstep,ktau,dz8w,rho_phy,tracer,&
              julday,gmt,xlat,xlong,t_phy,p_phy,                           &
@@ -146,7 +146,7 @@ index e2af4b2f..f9ace758 100644
              ebu,0,config_flags%tracer_opt,config_flags%biomass_burn_opt,     &
              num_tracer,ids,ide, jds,jde, kds,kde,                                   &
              ims,ime, jms,jme, kms,kme,                                   &
-@@ -807,7 +813,10 @@ CONTAINS
+@@ -858,7 +864,10 @@ real, save :: freq_industry(24)    = &
  !!! ***********   FIRE AND CHEM ****************************************
  !
      fire_select:  SELECT CASE(config_flags%biomass_burn_opt)
@@ -158,7 +158,7 @@ index e2af4b2f..f9ace758 100644
  !      if( do_plumerisefire )then
  !         CALL wrf_debug(15,'fire emissions: calling biomassb')
  !         write(0,*)ktau,stepfirepl
-@@ -826,6 +835,9 @@ CONTAINS
+@@ -877,6 +886,9 @@ real, save :: freq_industry(24)    = &
         CALL wrf_debug(15,'fire emissions: adding biomassb emissions')
         call add_emis_burn(id,dtstep,ktau,dz8w,rho_phy,chem,&
              julday,gmt,xlat,xlong,t_phy,p_phy,                           &

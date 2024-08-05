@@ -1,4 +1,4 @@
-From be98fd5cb8d3cc2a4f504279bb903b0e76802a09 Mon Sep 17 00:00:00 2001
+From 43b13ea45f28e919322ffb1d75f42209b7d489cc Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Wed, 23 Nov 2022 12:09:51 +0100
 Subject: [PATCH 32/52] (Update) Error message output format updated
@@ -16,7 +16,7 @@ List of modified files:
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/share/module_check_a_mundo.F b/share/module_check_a_mundo.F
-index 1acb3bda..8e95f571 100644
+index 8ad4e88a..49c50230 100644
 --- a/share/module_check_a_mundo.F
 +++ b/share/module_check_a_mundo.F
 @@ -273,7 +273,7 @@

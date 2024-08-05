@@ -1,4 +1,4 @@
-From 7ec5229c9648263a26c758cb66b42533d569c997 Mon Sep 17 00:00:00 2001
+From 59df405769520e62c3f2daf8a6b72593bb6e79eb Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 13:20:33 +0100
 Subject: [PATCH 26/52] UV albedo over snow and ice in Fast-J photolysis and
@@ -73,10 +73,10 @@ List of modified files:
  10 files changed, 244 insertions(+), 21 deletions(-)
 
 diff --git a/chem/chem_driver.F b/chem/chem_driver.F
-index 60e5dcdf..e73eab16 100755
+index 98a1681f..71c15262 100755
 --- a/chem/chem_driver.F
 +++ b/chem/chem_driver.F
-@@ -1206,6 +1206,9 @@
+@@ -1213,6 +1213,9 @@
                config_flags%track_tuv_num,                                             &
                grid%radfld,grid%adjcoe,grid%phrate,                                    &
                grid%track_wc,grid%track_zref,                                          &
@@ -87,7 +87,7 @@ index 60e5dcdf..e73eab16 100755
                grid%gaer1,grid%gaer2,grid%gaer3,grid%gaer4,                            &
                grid%waer1,grid%waer2,grid%waer3,grid%waer4,                            &
 diff --git a/chem/chemics_init.F b/chem/chemics_init.F
-index 3b78c3e8..7abc214f 100755
+index 952cb5f9..f459d37a 100755
 --- a/chem/chemics_init.F
 +++ b/chem/chemics_init.F
 @@ -64,6 +64,9 @@
@@ -100,7 +100,7 @@ index 3b78c3e8..7abc214f 100755
     USE module_mozcart_wetscav, only : wetscav_mozcart_init
     USE module_aerosols_sorgam
     USE module_aerosols_soa_vbs, only: aerosols_soa_vbs_init
-@@ -816,6 +819,13 @@ end if
+@@ -823,6 +826,13 @@ end if
  
          call ftuv_init( id, its, ite, jts, jte, kte, &
                    ide, jde, config_flags,config_flags%num_land_cat,mminlu_loc )
@@ -616,10 +616,10 @@ index b7c34ffb..a3628767 100644
            ! Sea-ice point has deep-level temperature of about -1.8 C
            TBOT = 271.36
 diff --git a/phys/module_sf_noahdrv.F b/phys/module_sf_noahdrv.F
-index 5c7df673..acca038f 100644
+index 21bced2f..f1a58543 100644
 --- a/phys/module_sf_noahdrv.F
 +++ b/phys/module_sf_noahdrv.F
-@@ -849,15 +849,15 @@ CONTAINS
+@@ -856,15 +856,15 @@ CONTAINS
  ! if "SR" present, set frac of frozen precip ("FFROZP") = snow-ratio ("SR", range:0-1)
  ! SR from e.g. Ferrier microphysics
  ! otherwise define from 1st atmos level temperature
@@ -640,10 +640,10 @@ index 5c7df673..acca038f 100644
          IF((XLAND(I,J)-1.5).GE.0.)THEN                                  ! begining of land/sea if block
  ! Open water points
 diff --git a/phys/module_surface_driver.F b/phys/module_surface_driver.F
-index f1592a1f..73d3912a 100644
+index 650dd4fe..cc19e3fe 100644
 --- a/phys/module_surface_driver.F
 +++ b/phys/module_surface_driver.F
-@@ -2593,9 +2593,15 @@ CONTAINS
+@@ -2602,9 +2602,15 @@ CONTAINS
  !          PRESENT(frc_urb2d) .AND. PRESENT(utype_urb2d)   .AND.      &
                                                        .TRUE. ) THEN
  !------------------------------------------------------------------

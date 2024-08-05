@@ -1,4 +1,4 @@
-From a1006546e686c85551f11fdfb02957c581fe897e Mon Sep 17 00:00:00 2001
+From 578222b9ee2d6663a6d3f1d799002b875203d2a9 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Wed, 17 Oct 2018 16:56:35 +0200
 Subject: [PATCH 08/52] KF-CuP/radiation and KF-CuP/cloud interactions
@@ -223,10 +223,10 @@ index 251e8603..cbc6b066 100644
  !...COMPUTE HYDROMETEOR TENDENCIES AS IS DONE FOR T, QV...
  !     
 diff --git a/phys/module_cumulus_driver.F b/phys/module_cumulus_driver.F
-index 305c32dd..a6dd23e5 100644
+index e1292a2d..72ce18bf 100644
 --- a/phys/module_cumulus_driver.F
 +++ b/phys/module_cumulus_driver.F
-@@ -1567,6 +1567,9 @@ CONTAINS
+@@ -1574,6 +1574,9 @@ CONTAINS
               ,RQSCUTEN=rqscuten                                 &
               ,F_QV=f_qv,F_QC=f_qc,F_QR=f_qr                     &
               ,F_QI=f_qi,F_QS=f_qs                               &
@@ -237,10 +237,10 @@ index 305c32dd..a6dd23e5 100644
          
          
 diff --git a/phys/module_physics_init.F b/phys/module_physics_init.F
-index e26df70a..576ebb25 100644
+index 9d419edf..4457c4a8 100644
 --- a/phys/module_physics_init.F
 +++ b/phys/module_physics_init.F
-@@ -1119,7 +1119,8 @@ CHARACTER(LEN=8) :: name
+@@ -1102,7 +1102,8 @@ CHARACTER(LEN=8) :: name
  
     icloud_cu = 0
     IF ( config_flags%cu_rad_feedback ) THEN

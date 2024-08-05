@@ -1,4 +1,4 @@
-From d02ead24f6d37903f1ef421c6f307ba148e1b13b Mon Sep 17 00:00:00 2001
+From dbf4ca1e23ac4a7933d5a150da8d8f2815c24d21 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 11:01:52 +0100
 Subject: [PATCH 02/52] Fix chem_driver init debug message
@@ -11,10 +11,10 @@ tracer_opt=0.
  1 file changed, 5 insertions(+), 1 deletion(-)
 
 diff --git a/chem/chem_driver.F b/chem/chem_driver.F
-index 4c8268df..c1387387 100755
+index 8650b944..cd39eeaf 100755
 --- a/chem/chem_driver.F
 +++ b/chem/chem_driver.F
-@@ -662,7 +662,11 @@
+@@ -664,7 +664,11 @@
      CASE (TRACER_TEST3)
         CALL wrf_debug(15,'tracer mode: 10 tracers')
       CASE DEFAULT

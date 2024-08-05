@@ -1,4 +1,4 @@
-From b03d3bc5e0efd0525fe8a985fc4bb9f0f1308dd1 Mon Sep 17 00:00:00 2001
+From 62591a21a2937fb2907b923afaf5fd87484d8e95 Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Fri, 7 Oct 2022 10:47:00 +0200
 Subject: [PATCH 27/52] Tracers (CHEM_TRACE2)
@@ -29,10 +29,10 @@ Registry/registry.chem
  3 files changed, 104 insertions(+), 5 deletions(-)
 
 diff --git a/Registry/registry.chem b/Registry/registry.chem
-index 30de3b69..39a06e2f 100644
+index b5cda202..62a9a0fd 100644
 --- a/Registry/registry.chem
 +++ b/Registry/registry.chem
-@@ -4210,7 +4210,9 @@ package   cbmz_mosaic_8bin_aq  chem_opt==10          -             chem:so2,sulf
+@@ -4226,7 +4226,9 @@ package   cbmz_mosaic_8bin_aq  chem_opt==10          -             chem:so2,sulf
  package   radm2sorg_aq chem_opt==11                  -             chem:so2,sulf,no2,no,o3,hno3,h2o2,ald,hcho,op1,op2,paa,ora1,ora2,nh3,n2o5,no3,pan,hc3,hc5,hc8,eth,co,ol2,olt,oli,tol,xyl,aco3,tpan,hono,hno4,ket,gly,mgly,dcb,onit,csl,iso,hcl,ho,ho2,so4aj,so4ai,nh4aj,nh4ai,no3aj,no3ai,naaj,naai,claj,clai,orgaro1j,orgaro1i,orgaro2j,orgaro2i,orgalk1j,orgalk1i,orgole1j,orgole1i,orgba1j,orgba1i,orgba2j,orgba2i,orgba3j,orgba3i,orgba4j,orgba4i,orgpaj,orgpai,ecj,eci,p25j,p25i,antha,seas,soila,nu0,ac0,corn,so4cwj,so4cwi,nh4cwj,nh4cwi,no3cwj,no3cwi,nacwj,nacwi,clcwj,clcwi,orgaro1cwj,orgaro1cwi,orgaro2cwj,orgaro2cwi,orgalk1cwj,orgalk1cwi,orgole1cwj,orgole1cwi,orgba1cwj,orgba1cwi,orgba2cwj,orgba2cwi,orgba3cwj,orgba3cwi,orgba4cwj,orgba4cwi,orgpacwj,orgpacwi,eccwj,eccwi,p25cwj,p25cwi,anthcw,seascw,soilcw,nu0cw,ac0cw,corncw
  package   racmsorg_aq  chem_opt==12                  -             chem:so2,sulf,no2,no,o3,hno3,h2o2,ald,hcho,op1,op2,paa,ora1,ora2,nh3,n2o5,no3,pan,hc3,hc5,hc8,eth,co,ete,olt,oli,tol,xyl,aco3,tpan,hono,hno4,ket,gly,mgly,dcb,onit,csl,iso,co2,ch4,udd,hket,api,lim,dien,macr,ho,ho2,so4aj,so4ai,nh4aj,nh4ai,no3aj,no3ai,naaj,naai,claj,clai,orgaro1j,orgaro1i,orgaro2j,orgaro2i,orgalk1j,orgalk1i,orgole1j,orgole1i,orgba1j,orgba1i,orgba2j,orgba2i,orgba3j,orgba3i,orgba4j,orgba4i,orgpaj,orgpai,ecj,eci,p25j,p25i,antha,seas,soila,nu0,ac0,corn,so4cwj,so4cwi,nh4cwj,nh4cwi,no3cwj,no3cwi,nacwj,nacwi,clcwj,clcwi,orgaro1cwj,orgaro1cwi,orgaro2cwj,orgaro2cwi,orgalk1cwj,orgalk1cwi,orgole1cwj,orgole1cwi,orgba1cwj,orgba1cwi,orgba2cwj,orgba2cwi,orgba3cwj,orgba3cwi,orgba4cwj,orgba4cwi,orgpacwj,orgpacwi,eccwj,eccwi,p25cwj,p25cwi,anthcw,seascw,soilcw,nu0cw,ac0cw,corncw
  package   chem_tracer   chem_opt==13                 -             chem:so2,no,ald,hcho,ora2,co
@@ -44,10 +44,10 @@ index 30de3b69..39a06e2f 100644
  
  # GHG chem packages, passive tracers
 diff --git a/chem/emissions_driver.F b/chem/emissions_driver.F
-index f9ace758..fd942c96 100644
+index ae258bea..27e62e51 100644
 --- a/chem/emissions_driver.F
 +++ b/chem/emissions_driver.F
-@@ -1112,6 +1112,78 @@ CONTAINS
+@@ -1233,6 +1233,78 @@ real, save :: freq_industry(24)    = &
               end do
            end do
         end do

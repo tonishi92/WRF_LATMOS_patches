@@ -1,6 +1,6 @@
-From d9f97a6f731e47700a632045f41c39f087e3c91f Mon Sep 17 00:00:00 2001
-From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
-Date: Sat, 13 Aug 2022 16:04:08 +0200
+From 364676ddb0b44b4423310c9ec2163e7c043aecb6 Mon Sep 17 00:00:00 2001
+From: tonishi92 <tatsuo.onishi@gmail.com>
+Date: Mon, 5 Aug 2024 18:52:31 +0200
 Subject: [PATCH 46/52] Remove call to zero_out for chem
 
 In solve_em, remove a call to microphysics_zero_outb so that small chem
@@ -12,15 +12,15 @@ should be allowed to be smaller than this.
  1 file changed, 6 deletions(-)
 
 diff --git a/dyn_em/solve_em.F b/dyn_em/solve_em.F
-index 92d5b73f..4c9f1d3e 100644
+index c5f47a50..ab753503 100644
 --- a/dyn_em/solve_em.F
 +++ b/dyn_em/solve_em.F
-@@ -4019,12 +4019,6 @@ BENCH_START(moist_phys_end_tim)
+@@ -4022,12 +4022,6 @@ BENCH_START(moist_phys_end_tim)
                        its, ite, jts, jte,                               &
                        k_start    , k_end                                )
  
 -       CALL microphysics_zero_outb (                                    &
--                      chem , num_chem , config_flags ,              &
+-                      chem , num_chem , config_flags ,                  &
 -                      ids, ide, jds, jde, kds, kde,                     &
 -                      ims, ime, jms, jme, kms, kme,                     &
 -                      its, ite, jts, jte,                               &

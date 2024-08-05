@@ -1,4 +1,4 @@
-From 6eafb05f26bc11f787299c642fb64443b7ce8a52 Mon Sep 17 00:00:00 2001
+From 10865445ca19aee2305a463c383d86029a1cdd6e Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 13:05:34 +0100
 Subject: [PATCH 19/52] Sea Salt Flux calculation in
@@ -113,7 +113,7 @@ In chem/module_mosaic_addemiss.F
  4 files changed, 714 insertions(+), 74 deletions(-)
 
 diff --git a/Registry/registry.chem b/Registry/registry.chem
-index 583ebedc..2f58c89c 100644
+index 86c5f147..8d7b20c7 100644
 --- a/Registry/registry.chem
 +++ b/Registry/registry.chem
 @@ -97,6 +97,9 @@ state    real  e_so4i         i+jf     emis_ant     1         Z      i5r     "E_
@@ -136,8 +136,8 @@ index 583ebedc..2f58c89c 100644
  
  # SESQ and MBO fluxes for the new SOA_VBS mechanism
  state    real  sebio_sesq     ij      misc        1         -      i06r     "sebio_sesq"       "Reference biog emiss"  "mol km^-2 hr^-1"
-@@ -4101,6 +4105,9 @@ rconfig   integer     dust_opt            namelist,chem          1
- rconfig   integer     dust_schme          namelist,chem          1              2       rh    "dust_schme"       ""      ""
+@@ -4116,6 +4120,9 @@ rconfig   integer     nh3emis_opt         namelist,chem          1
+ 
  rconfig   integer     dmsemis_opt         namelist,chem          1              0       rh    "dmsemis_opt"         ""      ""
  rconfig   integer     seas_opt            namelist,chem          1              0       rh    "seas_opt"            ""      ""
 +#LI add a namelist option link to SSA updates (seas_opt = 2,3,4)
@@ -147,10 +147,10 @@ index 583ebedc..2f58c89c 100644
  rconfig   integer     biomass_burn_opt    namelist,chem          max_domains    0       rh    "biomass_burn_opt"    ""      ""
  rconfig   integer     plumerisefire_frq   namelist,chem          max_domains    180     rh    "plumerisefire_frq"   ""      ""
 diff --git a/chem/chem_driver.F b/chem/chem_driver.F
-index e5aa15fc..7715ea6c 100755
+index 7dac05c0..20854c1f 100755
 --- a/chem/chem_driver.F
 +++ b/chem/chem_driver.F
-@@ -882,9 +882,9 @@
+@@ -884,9 +884,9 @@
                ebu, ebu_in,grid%mean_fct_agtf,grid%mean_fct_agef,grid%mean_fct_agsv,       &
                grid%mean_fct_aggr,grid%firesize_agtf, &
                grid%firesize_agef,grid%firesize_agsv,grid%firesize_aggr,                    &
@@ -163,7 +163,7 @@ index e5aa15fc..7715ea6c 100755
                grid%sebio_iso,grid%sebio_oli,grid%sebio_api,grid%sebio_lim,                 &
                grid%sebio_xyl,grid%sebio_hc3,grid%sebio_ete,grid%sebio_olt,                 &
 diff --git a/chem/emissions_driver.F b/chem/emissions_driver.F
-index 2222b74e..11ef00dc 100644
+index 742a3d7c..0cccde2e 100644
 --- a/chem/emissions_driver.F
 +++ b/chem/emissions_driver.F
 @@ -24,9 +24,9 @@ CONTAINS
@@ -178,7 +178,7 @@ index 2222b74e..11ef00dc 100644
           sebio_iso,sebio_oli,sebio_api,sebio_lim,sebio_xyl,                &
           sebio_hc3,sebio_ete,sebio_olt,sebio_ket,sebio_ald,                &   
           sebio_hcho,sebio_eth,sebio_ora2,sebio_co,sebio_nr,                &
-@@ -185,11 +185,13 @@ CONTAINS
+@@ -190,11 +190,13 @@ CONTAINS
            INTENT(IN   ) ::                                                 &
                                                       u10,                  &
                                                       v10,                  &
@@ -192,7 +192,7 @@ index 2222b74e..11ef00dc 100644
                                                       xlat,                 &
                                                       xlong,                &
                                                       znt,                  &
-@@ -1620,9 +1622,9 @@ CONTAINS
+@@ -1741,9 +1743,9 @@ real, save :: freq_industry(24)    = &
            CRI_MOSAIC_8BIN_AQ_KPP, CRI_MOSAIC_4BIN_AQ_KPP,SAPRC99_MOSAIC_8BIN_VBS2_AQ_KPP, &
            SAPRC99_MOSAIC_8BIN_VBS2_KPP   )
         call wrf_debug(15,'emissions_driver calling mosaic_addemiss')

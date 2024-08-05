@@ -1,4 +1,4 @@
-From 004fd392d300fc8117aea8aef5db8ae057a4d8d5 Mon Sep 17 00:00:00 2001
+From 4d448fa7c2b26e00fe6283612355f812080dac8f Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 13:29:30 +0100
 Subject: [PATCH 30/52] Fix chem initialization bugs in MOZART and MOSAIC
@@ -25,10 +25,10 @@ but also all other chemistry options (chem_opt).
  4 files changed, 67 insertions(+), 16 deletions(-)
 
 diff --git a/chem/chem_driver.F b/chem/chem_driver.F
-index e73eab16..8c3ee575 100755
+index 71c15262..9de50533 100755
 --- a/chem/chem_driver.F
 +++ b/chem/chem_driver.F
-@@ -582,6 +582,11 @@
+@@ -584,6 +584,11 @@
             CALL wrf_error_fatal( trim(msg) )
           ENDIF
           num_irr_diag = num_irr_diag_mozart_mosaic_4bin
@@ -40,7 +40,7 @@ index e73eab16..8c3ee575 100755
         ENDIF
  #endif
         haveaer = .true.
-@@ -595,6 +600,11 @@
+@@ -597,6 +602,11 @@
             CALL wrf_error_fatal( trim(msg) )
           ENDIF
           num_irr_diag = num_irr_diag_mozart_mosaic_4bin_aq
@@ -52,7 +52,7 @@ index e73eab16..8c3ee575 100755
         ENDIF
  #endif
         haveaer = .true.
-@@ -666,6 +676,11 @@
+@@ -668,6 +678,11 @@
             CALL wrf_error_fatal( trim(msg) )
           ENDIF
           num_irr_diag = num_irr_diag_mozcart
@@ -64,7 +64,7 @@ index e73eab16..8c3ee575 100755
         ENDIF
  #endif
       CASE (T1_MOZCART_KPP)
-@@ -678,6 +693,11 @@
+@@ -680,6 +695,11 @@
             CALL wrf_error_fatal( trim(msg) )
           ENDIF
           num_irr_diag = num_irr_diag_t1_mozcart
@@ -76,7 +76,7 @@ index e73eab16..8c3ee575 100755
         ENDIF
  #endif
       CASE (CB05_SORG_AQ_KPP)
-@@ -705,6 +725,21 @@
+@@ -707,6 +727,21 @@
         CALL wrf_debug(15,'calling chem_opt=? from chem_driver')
         endif
     END SELECT chem_select                              

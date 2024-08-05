@@ -1,4 +1,4 @@
-From 52223407a3942ece104a66413dde6e79ea91a82a Mon Sep 17 00:00:00 2001
+From d3daf51f597daf6609ed20d054a3a5317c304514 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Thu, 29 Feb 2024 10:03:34 +0100
 Subject: [PATCH 52/52] "#if ( WRF_CHEM == 1)" added for the WRF-only
@@ -12,7 +12,7 @@ Subject: [PATCH 52/52] "#if ( WRF_CHEM == 1)" added for the WRF-only
  3 files changed, 25 insertions(+), 5 deletions(-)
 
 diff --git a/dyn_em/module_first_rk_step_part1.F b/dyn_em/module_first_rk_step_part1.F
-index 7447b16d..96b45c5e 100644
+index 151502db..c2a70fc7 100644
 --- a/dyn_em/module_first_rk_step_part1.F
 +++ b/dyn_em/module_first_rk_step_part1.F
 @@ -278,11 +278,16 @@ BENCH_START(rad_driver_tim)
@@ -57,7 +57,7 @@ index 758c77d1..5d749291 100644
  
  !              !immersion nucleation
 diff --git a/phys/module_radiation_driver.F b/phys/module_radiation_driver.F
-index 882f0ecf..cb5b3f51 100644
+index 3c188f7a..7ff7d7b5 100644
 --- a/phys/module_radiation_driver.F
 +++ b/phys/module_radiation_driver.F
 @@ -27,13 +27,18 @@ CONTAINS

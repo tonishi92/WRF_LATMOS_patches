@@ -1,4 +1,4 @@
-From 272215415ba85e9e60324aae0d7b0b67bdecb72b Mon Sep 17 00:00:00 2001
+From f248a8c8f81b1cbb822c580b5f5444415abbd25f Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 6 Feb 2024 11:45:23 +0100
 Subject: [PATCH 22/52] Add MOZART_MOSAIC in a condition on emiss_opt for
@@ -16,10 +16,10 @@ chem_opt  =  SAPRC99_MOSAIC_8BIN_VBS2_AQ_KPP (203)
  1 file changed, 6 insertions(+), 3 deletions(-)
 
 diff --git a/chem/chemics_init.F b/chem/chemics_init.F
-index 333fcad5..acfeb9bd 100755
+index 1bd82276..0cd891f3 100755
 --- a/chem/chemics_init.F
 +++ b/chem/chemics_init.F
-@@ -487,9 +487,10 @@ call wrf_message("**************************************************************
+@@ -494,9 +494,10 @@ call wrf_message("**************************************************************
     endif
  
  !lm Add this condition on emiss_opt for Nightingale DMS emissions
@@ -32,7 +32,7 @@ index 333fcad5..acfeb9bd 100755
     endif
  !lm
  
-@@ -559,11 +560,13 @@ call wrf_message("**************************************************************
+@@ -566,11 +567,13 @@ call wrf_message("**************************************************************
  !lm For now, do not allow dmsemis_opt=2 for untested mechanisms.
      IF(config_flags%dmsemis_opt == 2) THEN
          IF(config_flags%chem_opt == SAPRC99_MOSAIC_8BIN_VBS2_AQ_KPP .or. &

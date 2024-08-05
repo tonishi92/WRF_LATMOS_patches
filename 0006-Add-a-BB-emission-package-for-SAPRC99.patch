@@ -1,4 +1,4 @@
-From e3108b034923ab6dea1266106bb2260251aa4acf Mon Sep 17 00:00:00 2001
+From 3ffb05c51bd746b4a6aa227c21a7979a5d2b0ba2 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Tue, 9 Oct 2018 15:12:00 +0200
 Subject: [PATCH 06/52] Add a BB emission package for SAPRC99
@@ -21,7 +21,7 @@ through emiss_ant(p_e_orgj_a) and emiss_ant(p_e_orgj_bb)
  5 files changed, 205 insertions(+), 27 deletions(-)
 
 diff --git a/Registry/registry.chem b/Registry/registry.chem
-index 70586eae..cf4142d3 100644
+index 6cd99615..03d5bc0f 100644
 --- a/Registry/registry.chem
 +++ b/Registry/registry.chem
 @@ -413,6 +413,28 @@ state    real  ebu_hcooh    ikjf     ebu           1         Z        -      "eb
@@ -82,7 +82,7 @@ index 70586eae..cf4142d3 100644
  
  # additional array for ch4 bbm emission
  state    real  ebu_in_ch4         i]jf      ebu_in      1         -        i07        "ebu_in_ch4"        "EMISSIONS"          "mol km^-2 hr^-1"
-@@ -4098,6 +4142,9 @@ package   biomassb_t1_mozcart   biomass_burn_opt==4          -          state:me
+@@ -4118,6 +4162,9 @@ package   biomassb_t1_mozcart   biomass_burn_opt==4          -          state:me
  # GHG biomass burning
  package   biomassb_ghg  biomass_burn_opt==5          -             state::mean_fct_agtf,mean_fct_agef,mean_fct_agsv,mean_fct_aggr,firesize_agtf,firesize_agef,firesize_agsv,firesize_aggr;ebu:ebu_co,ebu_co2,ebu_ch4;ebu_in:ebu_in_co,ebu_in_co2,ebu_in_ch4
  
@@ -93,10 +93,10 @@ index 70586eae..cf4142d3 100644
  package  do_mozart_ph_diag    mozart_ph_diag==1      -             state:ph_cw,ph_aer01,ph_aer02,ph_aer03,ph_aer04
  
 diff --git a/chem/emissions_driver.F b/chem/emissions_driver.F
-index 9c4c8cb1..2222b74e 100644
+index 47b1e6f4..742a3d7c 100644
 --- a/chem/emissions_driver.F
 +++ b/chem/emissions_driver.F
-@@ -631,6 +631,7 @@ CONTAINS
+@@ -682,6 +682,7 @@ real, save :: freq_industry(24)    = &
        IF ( config_flags%biomass_burn_opt == BIOMASSB_MOZC .OR. &
             config_flags%biomass_burn_opt == BIOMASSB_T1_MOZCART  .OR. &
             config_flags%biomass_burn_opt == BIOMASSB_MOZ  .OR. &
@@ -104,7 +104,7 @@ index 9c4c8cb1..2222b74e 100644
             config_flags%biomass_burn_opt == BIOMASSB_GHG  .OR. &
             config_flags%biomass_burn_opt == BIOMASSB ) then
          IF ( ktau==1 ) then
-@@ -784,7 +785,7 @@ CONTAINS
+@@ -835,7 +836,7 @@ real, save :: freq_industry(24)    = &
  !!! ***********   FIRE AND CHEM ****************************************
  !
      fire_select:  SELECT CASE(config_flags%biomass_burn_opt)
@@ -113,7 +113,7 @@ index 9c4c8cb1..2222b74e 100644
  !      if( do_plumerisefire )then
  !         CALL wrf_debug(15,'fire emissions: calling biomassb')
  !         write(0,*)ktau,stepfirepl
-@@ -1340,31 +1341,69 @@ CONTAINS
+@@ -1461,31 +1462,69 @@ real, save :: freq_industry(24)    = &
                  chem(i,k,j,p_nh3)  = chem(i,k,j,p_nh3)                       &
                       +emis_ant(i,k,j,p_e_nh3)*conv
  

@@ -1,4 +1,4 @@
-From bb77b7085bf6ef9cddca23da36622285b33db7f4 Mon Sep 17 00:00:00 2001
+From cbb7d033451d3689c18ce0292e80ef42db53f024 Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Thu, 24 Nov 2022 09:30:20 +0100
 Subject: [PATCH 36/52] (Update) k-range for BIOMASSB_SAPRC.
@@ -20,10 +20,10 @@ List of modified files:
  1 file changed, 3 insertions(+), 1 deletion(-)
 
 diff --git a/chem/emissions_driver.F b/chem/emissions_driver.F
-index fd942c96..66c17ac8 100644
+index 27e62e51..87778b4f 100644
 --- a/chem/emissions_driver.F
 +++ b/chem/emissions_driver.F
-@@ -1483,7 +1483,9 @@ CONTAINS
+@@ -1604,7 +1604,9 @@ real, save :: freq_industry(24)    = &
         if ( config_flags%biomass_burn_opt == BIOMASSB_SAPRC ) then
           do j=jts,jte
             do i=its,ite
