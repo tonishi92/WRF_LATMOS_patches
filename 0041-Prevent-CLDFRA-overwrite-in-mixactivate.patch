@@ -1,0 +1,180 @@
+From 625d1de3ae610f70dde112b0499ac0f713e4caee Mon Sep 17 00:00:00 2001
+From: tonishi92 <tatsuo.onishi@gmail.com>
+Date: Mon, 12 Dec 2022 12:45:00 +0100
+Subject: [PATCH 41/54] Prevent CLDFRA overwrite in mixactivate
+
+Description:
+   In phys/module_mixactivate.F, remove intent(inout) declarations for
+   CLDFRA and define a local cldfra_new array. This is to prevent the call
+   to cal_cldfra2 in mixactivate from overwriting the value of CLDFRA from
+   the radiation driver (which can be calculated by different methods than
+   cal_cldfra2 depending on icloud).
+
+TYPE : Update
+
+SOURCE : L. Marelle
+
+List of modified files:
+	modified:   chem/dry_dep_driver.F
+	modified:   chem/module_mixactivate_wrappers.F
+	modified:   phys/module_mixactivate.F
+---
+ chem/dry_dep_driver.F              |  4 +++-
+ chem/module_mixactivate_wrappers.F | 16 ++++++++--------
+ phys/module_mixactivate.F          | 13 +++++++------
+ 3 files changed, 18 insertions(+), 15 deletions(-)
+
+diff --git a/chem/dry_dep_driver.F b/chem/dry_dep_driver.F
+index 938673b2..708a2d1d 100755
+--- a/chem/dry_dep_driver.F
++++ b/chem/dry_dep_driver.F
+@@ -150,9 +150,11 @@ CONTAINS
+    REAL, DIMENSION(num_chem) :: dryd_mass
+ !ND ----------------------------------------------------------------------------
+ 
++   REAL,  DIMENSION( ims:ime , kms:kme , jms:jme )         ,        &
++          INTENT(IN ) ::                                     &
++                    cldfra        ! cloud fraction current timestep
+    REAL,  DIMENSION( ims:ime , kms:kme , jms:jme )         ,        &
+           INTENT(INOUT ) ::                                     &
+-                    cldfra,     & ! cloud fraction current timestep
+                     cldfra_old    ! cloud fraction previous timestep
+    REAL,  DIMENSION( ims:ime , jms:jme, 5 )                   ,    &
+           INTENT(IN) ::            seasin,dustin 
+diff --git a/chem/module_mixactivate_wrappers.F b/chem/module_mixactivate_wrappers.F
+index 1cb02e72..cd29b8f9 100644
+--- a/chem/module_mixactivate_wrappers.F
++++ b/chem/module_mixactivate_wrappers.F
+@@ -114,14 +114,14 @@ CONTAINS
+ 		z, dz8w, p_at_w, t_at_w, exch_h
+ 
+ 	real, intent(inout),   &
+-		dimension( ims:ime, kms:kme, jms:jme ) :: cldfra, cldfra_old
++		dimension( ims:ime, kms:kme, jms:jme ) :: cldfra_old
+ 
+ 	real, intent(in),   &
+ 		dimension( its:ite, jts:jte, num_chem ) :: ddvel
+ 
+ 	real, intent(in),   &
+ 		dimension( ims:ime, kms:kme, jms:jme ) :: &
+-		qv, qc, qi
++		qv, qc, qi, cldfra
+ 
+     LOGICAL, intent(in) :: f_qc, f_qi
+ 
+@@ -495,14 +495,14 @@ CONTAINS
+ 		z, dz8w, p_at_w, t_at_w, exch_h
+ 
+ 	real, intent(inout),   &
+-		dimension( ims:ime, kms:kme, jms:jme ) :: cldfra, cldfra_old
++		dimension( ims:ime, kms:kme, jms:jme ) :: cldfra_old
+ 
+ 	real, intent(in),   &
+ 		dimension( its:ite, jts:jte, num_chem ) :: ddvel
+ 
+ 	real, intent(in),   &
+ 		dimension( ims:ime, kms:kme, jms:jme ) :: &
+-		qv, qc, qi
++		qv, qc, qi, cldfra
+ 
+     LOGICAL, intent(in) :: f_qc, f_qi
+ 
+@@ -601,14 +601,14 @@ CONTAINS
+                 z, dz8w, p_at_w, t_at_w, exch_h
+ 
+         real, intent(inout),   &
+-                dimension( ims:ime, kms:kme, jms:jme ) :: cldfra, cldfra_old
++                dimension( ims:ime, kms:kme, jms:jme ) :: cldfra_old
+ 
+         real, intent(in),   &
+                 dimension( its:ite, jts:jte, num_chem ) :: ddvel
+ 
+         real, intent(in),   &
+                 dimension( ims:ime, kms:kme, jms:jme ) :: &
+-                qv, qc, qi
++                qv, qc, qi, cldfra
+ 
+     LOGICAL, intent(in) :: f_qc, f_qi
+ 
+@@ -704,14 +704,14 @@ CONTAINS
+                 z, dz8w, p_at_w, t_at_w, exch_h
+ 
+         real, intent(inout),   &
+-                dimension( ims:ime, kms:kme, jms:jme ) :: cldfra, cldfra_old
++                dimension( ims:ime, kms:kme, jms:jme ) :: cldfra_old
+ 
+         real, intent(in),   &
+                 dimension( its:ite, jts:jte, num_chem ) :: ddvel
+ 
+         real, intent(in),   &
+                 dimension( ims:ime, kms:kme, jms:jme ) :: &
+-                qv, qc, qi
++                qv, qc, qi, cldfra
+ 
+     LOGICAL, intent(in) :: f_qc, f_qi
+ 
+diff --git a/phys/module_mixactivate.F b/phys/module_mixactivate.F
+index a44c0cc2..719a3816 100644
+--- a/phys/module_mixactivate.F
++++ b/phys/module_mixactivate.F
+@@ -55,11 +55,11 @@ CONTAINS
+ 		z, dz8w, p_at_w, t_at_w, exch_h
+ 
+ 	real, intent(inout),   &
+-		dimension( ims:ime, kms:kme, jms:jme ) :: cldfra, cldfra_old
++		dimension( ims:ime, kms:kme, jms:jme ) :: cldfra_old
+ 
+ 	real, intent(in),   &
+ 		dimension( ims:ime, kms:kme, jms:jme ) :: &
+-		qv, qc, qi
++		qv, qc, qi, cldfra
+ 
+ 	real, intent(inout), optional,  &
+ 		dimension( ims:ime, kms:kme, jms:jme ) :: &
+@@ -312,7 +312,7 @@ subroutine mixactivate(  msectional,            &
+   real, intent(in) :: t_at_w(ims:ime, kms:kme, jms:jme) ! temperature at layer interface (K)
+   real, intent(in) :: kvh(ims:ime, kms:kme, jms:jme)    ! vertical diffusivity (m2/s)
+   real, intent(inout) :: cldfra_old(ims:ime, kms:kme, jms:jme)! cloud fraction on previous time step
+-  real, intent(inout) :: cldfra(ims:ime, kms:kme, jms:jme)    ! cloud fraction
++  real, intent(in) :: cldfra(ims:ime, kms:kme, jms:jme)    ! cloud fraction
+   real, intent(in) :: hygro( its:ite, kts:kte, jts:jte, maxd_asize, maxd_atype ) ! bulk hygroscopicity   &
+ 
+   REAL, intent(out), DIMENSION( ims:ime, jms:jme, num_chem ) ::   qsrflx ! dry deposition rate for aerosol
+@@ -322,6 +322,7 @@ subroutine mixactivate(  msectional,            &
+ 
+ !--------------------Local storage-------------------------------------
+ !
++  real :: cldfra_new(ims:ime,kms:kme,jms:jme) ! Recalculated cloud fraction
+   real :: dgnum_aer(maxd_asize, maxd_atype) ! median diameter (cm) of number distrib of mode
+   real :: qndrop(kms:kme)      ! cloud droplet number mixing ratio (#/kg)
+   real :: lcldfra(kms:kme)     ! liquid cloud fraction
+@@ -492,7 +493,7 @@ subroutine mixactivate(  msectional,            &
+   enddo
+ 
+   IF( PRESENT(F_QC) .AND. PRESENT ( F_QI ) ) THEN
+-     CALL cal_cldfra2(CLDFRA,qc,qi,f_qc,f_qi,     &
++     CALL cal_cldfra2(CLDFRA_new,qc,qi,f_qc,f_qi,     &
+           ids,ide, jds,jde, kds,kde,              &
+           ims,ime, jms,jme, kms,kme,              &
+           its,ite, jts,jte, kts,kte               )
+@@ -529,7 +530,7 @@ OVERALL_MAIN_I_LOOP: do i=its,ite
+            call wrf_error_fatal("1")
+         endif
+         if(qcld.gt.1.e-20)then
+-           lcldfra(k)=cldfra(i,k,j)*qc(i,k,j)/qcld
++           lcldfra(k)=cldfra_new(i,k,j)*qc(i,k,j)/qcld
+            lcldfra_old(k)=cldfra_old(i,k,j)*qc(i,k,j)/qcld
+         else
+            lcldfra(k)=0.
+@@ -910,7 +911,7 @@ OLD_CLOUD_MAIN_K_LOOP: do k=kts,kte
+ !              no cloud
+            if(qndrop(k).gt.10000.e6)then
+               print *,'i,k,j,lcldfra,qndrop=',i,k,j,lcldfra(k),qndrop(k)
+-              print *,'cldfra,ql,qi',cldfra(i,k,j),qc(i,k,j),qi(i,k,j)
++              print *,'cldfra,ql,qi',cldfra_new(i,k,j),qc(i,k,j),qi(i,k,j)
+            endif
+            nsource(i,k,j)=nsource(i,k,j)-qndrop(k)*dtinv
+            qndrop(k)=0.
+-- 
+2.31.1
+

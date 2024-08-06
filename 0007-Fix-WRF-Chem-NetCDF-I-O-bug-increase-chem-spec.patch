@@ -1,0 +1,44 @@
+From 3abc252c35361e8da40fc24c47efac9203ce5c6e Mon Sep 17 00:00:00 2001
+From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
+Date: Wed, 23 Feb 2022 16:54:11 +0100
+Subject: [PATCH 07/54] Fix WRF-Chem NetCDF I/O bug + increase chem spec
+
+Fix a bug in external/io_netcdf/wrf_io.F90, where a #if(WRF_CHEM == 1)
+test fails setting MaxVars (max number of NetCDF variables in WRF I/O
+files). Remove the test and set MaxVars to a sufficiently large value
+(10000) for WRF-Chem. Also increase the number of max chem species in
+chem/module_input_chem_data.F
+---
+ chem/module_input_chem_data.F | 2 +-
+ external/io_netcdf/wrf_io.F90 | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/chem/module_input_chem_data.F b/chem/module_input_chem_data.F
+index be446ce4..edc7ed07 100755
+--- a/chem/module_input_chem_data.F
++++ b/chem/module_input_chem_data.F
+@@ -70,7 +70,7 @@ MODULE module_input_chem_data
+     INTEGER :: kx              ! number of vertical levels in temp profile        
+     INTEGER :: kxm1
+ 
+-    PARAMETER( kx=16, kxm1=kx-1, logg=350, lo=34) ! DL (6/2/2013) Changed value of logg from 200 to 350 for additional gas species
++    PARAMETER( kx=16, kxm1=kx-1, logg=450, lo=34) ! DL (6/2/2013) Changed value of logg from 200 to 350 for additional gas species !LMarelle Changed logg from 350 to 450 for 8bin MOSAIC aerosols
+    
+     INTEGER, DIMENSION(logg)                     :: iref
+ 
+diff --git a/external/io_netcdf/wrf_io.F90 b/external/io_netcdf/wrf_io.F90
+index 8863e4e2..570f5f43 100644
+--- a/external/io_netcdf/wrf_io.F90
++++ b/external/io_netcdf/wrf_io.F90
+@@ -43,7 +43,7 @@ module wrf_data
+ #if(WRF_CHEM == 1)
+   integer                , parameter      :: MaxVars          = 10000
+ #else
+-  integer                , parameter      :: MaxVars          = 3000
++  integer                , parameter      :: MaxVars          = 10000
+ #endif
+   integer                , parameter      :: MaxTimes         = 60000
+   integer                , parameter      :: DateStrLen       = 19
+-- 
+2.31.1
+

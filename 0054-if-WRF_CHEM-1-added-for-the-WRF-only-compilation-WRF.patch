@@ -1,0 +1,145 @@
+From d4eb7ebe5142c882541f81f72c3a2c587dc73549 Mon Sep 17 00:00:00 2001
+From: tonishi92 <tatsuo.onishi@gmail.com>
+Date: Thu, 29 Feb 2024 10:03:34 +0100
+Subject: [PATCH 54/54] "#if ( WRF_CHEM == 1)" added for the WRF-only
+ compilation (WRF_CHEM = 0) because "radeffectdt" and "radeffect_option" are
+ listed Registry/registry.chem
+
+---
+ dyn_em/module_first_rk_step_part1.F |  7 ++++++-
+ phys/module_mp_milbrandt2mom.F      |  4 ++--
+ phys/module_radiation_driver.F      | 19 +++++++++++++++++--
+ 3 files changed, 25 insertions(+), 5 deletions(-)
+
+diff --git a/dyn_em/module_first_rk_step_part1.F b/dyn_em/module_first_rk_step_part1.F
+index 151502db..c2a70fc7 100644
+--- a/dyn_em/module_first_rk_step_part1.F
++++ b/dyn_em/module_first_rk_step_part1.F
+@@ -278,11 +278,16 @@ BENCH_START(rad_driver_tim)
+      &        ,solar_opt=config_flags%solar_diagnostics                              &
+      &        ,P8W=grid%p_hyd_w        ,P=grid%p_hyd            ,PI=pi_phy           &
+ !TO2
++#if ( WRF_CHEM == 1 )
+      &        ,radeffect_option=config_flags%radeffect_option                         &
++#endif
+ !TO2
+ !lm Add a time step for the output of the radiative effects of O3 and aerosols
+ !lm     &        ,RADT=grid%radt          ,RA_CALL_OFFSET=grid%ra_call_offset           &
+-     &        ,RADT=grid%radt          ,RADEFFECTDT=grid%radeffectdt                 &
++     &        ,RADT=grid%radt                                                        &
++#if ( WRF_CHEM == 1 )
++     &        ,RADEFFECTDT=grid%radeffectdt                                          &
++#endif
+      &        ,RA_CALL_OFFSET=grid%ra_call_offset                                    &
+ !lm
+      &        ,RHO=grid%rho            ,RLWTOA=grid%rlwtoa                           &
+diff --git a/phys/module_mp_milbrandt2mom.F b/phys/module_mp_milbrandt2mom.F
+index 758c77d1..5d749291 100644
+--- a/phys/module_mp_milbrandt2mom.F
++++ b/phys/module_mp_milbrandt2mom.F
+@@ -2263,7 +2263,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
+          !! (for alternative [future] ice nucleation parameterizations)
+          !   NNUvi=...
+          !   QNUvi=...
+-
++#if ( WRF_CHEM == 1)
+           elseif (primIceNucl==3) then
+            !! (CNT with contact angle and contact nucleation)
+               if (Si>1.) then
+@@ -2365,8 +2365,8 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
+                  NuDEPSOR=PODNTEG_DEP !Total cryst. conc. nucleated depos in DT, in cm^-3
+                  if (NuDEPSOR.lt.1e-40) NuDEPSOR=1e-40
+  1111            continue
+-
+              end if
++#endif
+           endif !if (primIceNucl==1)
+ 
+ !              !immersion nucleation
+diff --git a/phys/module_radiation_driver.F b/phys/module_radiation_driver.F
+index 3c188f7a..7ff7d7b5 100644
+--- a/phys/module_radiation_driver.F
++++ b/phys/module_radiation_driver.F
+@@ -27,13 +27,18 @@ CONTAINS
+               ,solar_opt                                                  &
+               ,P8W    ,P ,PI                                              &
+               ,p_top                                                      &
++#if ( WRF_CHEM == 1)
+ !TO2
+               ,radeffect_option                                           &
+ !TO2
++#endif
+ !lm
+ !              ,RADT   ,RA_CALL_OFFSET   &
+-              ,RADT ,RADEFFECTDT        &
+-              ,RA_CALL_OFFSET           &
++              ,RADT                                                       &
++#if ( WRF_CHEM == 1)
++              ,RADEFFECTDT                                                &
++#endif
++              ,RA_CALL_OFFSET                                             &
+ !lm
+               ,RHO    ,RLWTOA                                             &
+               ,RSWTOA ,RTHRATEN                                           &
+@@ -431,7 +436,9 @@ CONTAINS
+    USE module_ra_goddard    , ONLY : goddardrad
+    USE module_ra_flg        , ONLY : RAD_FLG
+ !lm
++#if ( WRF_CHEM == 1)
+    USE module_state_description, ONLY:num_chem,p_o3
++#endif
+ !lm
+ 
+    USE module_ra_aerosol    , ONLY : calc_aerosol_goddard_sw, &
+@@ -656,12 +663,14 @@ CONTAINS
+    LOGICAL,      INTENT(IN   )    ::   is_CAMMGMP_used !BSINGH:01/31/2013: Added for CAM5 RRTMG
+ 
+    REAL,      INTENT(IN   )       ::   RADT
++#if ( WRF_CHEM == 1)
+ !TO2
+    INTEGER,   INTENT(IN   )       ::   RADEFFECT_OPTION
+ !TO2
+ !lm
+    REAL,      INTENT(IN   )       ::   RADEFFECTDT
+ !lm
++#endif 
+ 
+    REAL, DIMENSION( ims:ime, jms:jme ),                           &
+          INTENT(IN   )  ::                                 XLAND, &
+@@ -1390,6 +1399,7 @@ CONTAINS
+       radtacttime = curr_secs + radt*60
+    END IF
+ 
++#if ( WRF_CHEM == 1)
+ !lm do or not the radiative effect calculations based on radeffectdt (minutes)
+ !lm add sanity checks: make sure that weird things can't happen with negative values or 
+ !   with values that are not multiple of time steps and output steps
+@@ -1414,6 +1424,9 @@ CONTAINS
+ !TO2
+    IF (radeffect_option .eq. 0) do_radeffect = .false.
+ !TO2
++#else 
++   do_radeffect = .false.
++#endif
+    IF (do_radeffect) CALL wrf_debug(1, 'radiation_driver, do accumulated radiative forcing calcs.')
+ !lm
+    IF ( mp_physics .EQ. nuwrf4icescheme ) THEN
+@@ -2143,6 +2156,7 @@ CONTAINS
+      ENDIF
+ 
+ !lm
++#if (WRF_CHEM == 1)
+      IF ( o3input .EQ. 3 .AND. id .EQ. 1 ) THEN
+      do i=its,ite
+         do j= jts,jte
+@@ -2153,6 +2167,7 @@ CONTAINS
+         end do
+      end do
+      ENDIF
++#endif
+ !lm
+ 
+      IF ( PRESENT( AEROD ) ) THEN
+-- 
+2.31.1
+

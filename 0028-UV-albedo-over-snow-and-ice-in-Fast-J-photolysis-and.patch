@@ -1,0 +1,667 @@
+From ae57750035cf67ff69a841c7a290b24fba414fb9 Mon Sep 17 00:00:00 2001
+From: tonishi92 <tatsuo.onishi@gmail.com>
+Date: Tue, 17 Jan 2023 13:20:33 +0100
+Subject: [PATCH 28/54] UV albedo over snow and ice in Fast-J photolysis and
+ for FTUV+TUV photolysis
+
+TYPE : Updates
+
+list of modified files (Fast-J):
+---------------------------------------------------------------------------------
+chem/chem_driver.F
+   * UV albedo over snow and ice : pass snowh, snowc, xice, lu_index
+     to photolysis_driver in chem/photolysis_driver.F
+
+chem/chemics_init.F
+   * fastj_landinit from module_phot_fastj is added
+   * fastj_landinit: initialization routine for fastj photolysis
+     (phot_opt = PHOTFASTJ (Varying surface albedo).
+
+chem/photolysis_driver.F
+   * Implementation of a higher surface UV-albedo over snow/ice covered surfaces
+     in Fast-J photolysis. Concerned variables : snowh, snowc, xice, lu_index
+
+chem/module_phot_fastj.F
+   * Use of different suface UV albedo surface_albedo over snow/ice covered surfaces.
+     Added elements are
+     - land cover type luse2usgs
+     - snow height snowh, snow_height
+     - snow cover snowc, snow_cover
+     - ice fraction to photolysis xice, ice_fract
+     - USGS land use categories (from Tanskanen and Manninen, 2007) snow_uvalb
+     - Flag for fractional seaice (integer) if_fractseaice
+   * Implementation of subroutine fastj_landinit for the initialization of luse2usgs array,
+     used to map land use (ivgtyp) categories from non-USGS (only MODIS for now) to USGS
+
+phys/module_mp_morr_two_moment.F
+   * Debug: SR is confined to the range [0,1]. In particular, for SNOWRT1D << 1.
+   * Relevent scheme noahlsm
+
+phys/module_sf_noahdrv.F
+   * Comment out FFROZP=SR(I,J)
+
+phys/module_sf_noah_seaice_drv.F
+   * Comment out FFROZP=SF(I,J)
+
+phys/module_surface_driver.F
+   * Comment out frpcpn = .true. :
+     otherwise possibly causing SR to be zero and
+     the cumulus precipitation is never considered as snow.
+
+(FTUV+TUV)
+Uses a higher UV-albedo over snow- and ice-covered surfaces in TUV and FTUV
+photolysis. The snow/ice albedo value is taken as 0.85, and is weighted by the
+snow and ice covers.
+
+Source : L. Marelle
+
+List of modified files:
+        modified:   chem/module_ftuv_driver.F
+        modified:   chem/module_phot_tuv.F
+        modified:   chem/photolysis_driver.F
+---
+ chem/chem_driver.F               |   3 +
+ chem/chemics_init.F              |  10 +++
+ chem/module_ftuv_driver.F        |  34 +++++++-
+ chem/module_phot_fastj.F         | 135 ++++++++++++++++++++++++++++++-
+ chem/module_phot_tuv.F           |  23 +++++-
+ chem/photolysis_driver.F         |  19 +++++
+ phys/module_mp_morr_two_moment.F |  11 ++-
+ phys/module_sf_noah_seaice_drv.F |  10 ++-
+ phys/module_sf_noahdrv.F         |   8 +-
+ phys/module_surface_driver.F     |  12 ++-
+ 10 files changed, 244 insertions(+), 21 deletions(-)
+
+diff --git a/chem/chem_driver.F b/chem/chem_driver.F
+index 98a1681f..71c15262 100755
+--- a/chem/chem_driver.F
++++ b/chem/chem_driver.F
+@@ -1213,6 +1213,9 @@
+               config_flags%track_tuv_num,                                             &
+               grid%radfld,grid%adjcoe,grid%phrate,                                    &
+               grid%track_wc,grid%track_zref,                                          &
++!lm
++              grid%snowh, grid%snowc, grid%xice, grid%LU_INDEX,                       &
++!lm
+               grid%tauaer1,grid%tauaer2,grid%tauaer3,grid%tauaer4,                    &
+               grid%gaer1,grid%gaer2,grid%gaer3,grid%gaer4,                            &
+               grid%waer1,grid%waer2,grid%waer3,grid%waer4,                            &
+diff --git a/chem/chemics_init.F b/chem/chemics_init.F
+index 952cb5f9..f459d37a 100755
+--- a/chem/chemics_init.F
++++ b/chem/chemics_init.F
+@@ -64,6 +64,9 @@
+ 
+    USE module_ftuv_driver, only : ftuv_init
+    USE module_phot_tuv,    only : tuv_init
++!lm Update dependencies
++   USE module_phot_fastj, only: fastj_landinit
++!lm
+    USE module_mozcart_wetscav, only : wetscav_mozcart_init
+    USE module_aerosols_sorgam
+    USE module_aerosols_soa_vbs, only: aerosols_soa_vbs_init
+@@ -823,6 +826,13 @@ end if
+ 
+         call ftuv_init( id, its, ite, jts, jte, kte, &
+                   ide, jde, config_flags,config_flags%num_land_cat,mminlu_loc )
++
++!lm Add an initialization routine for fastj photolysis, in order to use varying
++!surface albedo
++     CASE (PHOTFASTJ)
++        CALL wrf_debug(00,'call fastj phot initialization')
++        call fastj_landinit( id, config_flags%num_land_cat,mminlu_loc )
++!lm
+      CASE (TUV)
+        if( config_flags%cld_od_opt > 3 .or. config_flags%cld_od_opt < 1 ) then
+          call wrf_error_fatal("cld_od_opt must be {1,2,3}")
+diff --git a/chem/module_ftuv_driver.F b/chem/module_ftuv_driver.F
+index 0a3c1f69..b5d3d940 100644
+--- a/chem/module_ftuv_driver.F
++++ b/chem/module_ftuv_driver.F
+@@ -29,6 +29,7 @@
+ 
+       real(dp), private :: zref(nref), tref(nref), airref(nref), o3ref(nref)
+       real(dp), private :: albedo(nw-1,2)
++      real(dp), private :: albedo_input(nw-1,2)
+ 
+       type column_density
+         integer           :: ncoldens_levs
+@@ -129,6 +130,7 @@
+                               p_phy, t_phy, rho_phy, p8w, t8w,         &
+                               xlat, xlong,    z_at_w,                  &
+                               moist, chem,gd_cloud,gd_cloud2,          &
++                              xice, snowc, snowh,                      &
+                               ph_no2,ph_o31d,ph_o33p,ph_hono,          &
+                               ph_hno3,ph_hno4,ph_no3o2,ph_no3o,        &
+                               ph_h2o2,ph_ch2om,ph_ch2or,ph_ald,        &
+@@ -185,6 +187,11 @@
+                              t8w(ims:ime,kms:kme,jms:jme),       &
+                              z_at_w(ims:ime,kms:kme,jms:jme)
+ 
++      real, dimension( ims:ime , jms:jme ),                      &
++            intent(in   ) :: snowh, snowc, xice
++
++
++
+ !----------------------------------------------------
+ ! these arrays are for cloudwater/ice coming from 
+ ! grell convection, optional
+@@ -268,6 +275,8 @@
+                   waer600(kts:kte), waer999(kts:kte)
+       real(dp) :: gaer300(kts:kte), gaer400(kts:kte),            &
+                   gaer600(kts:kte), gaer999(kts:kte)
++      real(dp) :: seaiceconc, snowcover, snowheight
++
+ 
+       real(dp) :: p_jtop(its:ite,jts:jte)
+       real(dp) :: o2_exo_col(its:ite,jts:jte)
+@@ -500,6 +509,10 @@ level_loop : &
+           air(k) = .5_dp*air(k) + .25_dp*( air(k-1) + air(k+1) )
+         enddo
+ 
++       seaiceconc = xice(i,j)
++       snowcover  = snowc(i,j)
++       snowheight = snowh(i,j)
++
+        alat  = real(xlat(i,j),kind=dp)
+        along = -real(xlong(i,j),kind=dp)
+        call calc_zenith( alat, along, julday, gmtp, azim, zen )
+@@ -526,6 +539,7 @@ level_loop : &
+                    aant,                 &
+                    aso4,                 &
+                    asal,                 &
++                   seaiceconc, snowcover, snowheight, &
+ ! rajesh: Add aerosol optical property columns as arguments
+                    tauaer300, tauaer400, &
+                    tauaer600, tauaer999, &
+@@ -1003,7 +1017,9 @@ include 'netcdf.inc'
+                         along, o3top, o2top, o3toms, lu, zin, tlevin, &
+                         airlevin, rhin, xlwcin, o3in, acb1in, &
+                         acb2in, aoc1in, aoc2in, aantin, aso4in, &
+-                        asalin, tauaer300in,tauaer400in,tauaer600in,tauaer999in, &
++                        asalin, &
++                        seaiceconc, snowcover, snowheight, &
++                        tauaer300in,tauaer400in,tauaer600in,tauaer999in, &
+                         waer300in, waer400in, waer600in, waer999in,    &
+                         gaer300in, gaer400in, gaer600in, gaer999in,    &
+                         aer_ra_feedback, prate, radfld, adjcoe, prate0 )
+@@ -1024,6 +1040,7 @@ include 'netcdf.inc'
+       real(dp), intent(in) :: o3toms
+       real(dp), intent(in) :: o3top
+       real(dp), intent(in) :: o2top
++      real(dp), intent(in) :: seaiceconc, snowcover, snowheight
+ 
+       real(dp), intent(in) :: zin(nlev)
+       real(dp), intent(in) :: tlevin(nlev)
+@@ -1239,8 +1256,19 @@ include 'netcdf.inc'
+       end if
+ 
+ 
+-      call photoin( chem_opt, nz, zen, o3toms, esfact,           & 
+-                    o3top, o2top, albedo(:,lu), z_ph, tlev_ph,   & 
++      ! Use a higher albedo over snow and ice
++      albedo_input(:,:) = albedo(:,:)
++      IF(seaiceconc .GT. 0.15) THEN
++        ! Sea ice concentrations < 15 % are ignored
++        ! Bare ice albedo assumed to be 0.85
++        albedo_input(:,2) = 0.85*seaiceconc + albedo(:,2) * (1. - seaiceconc)
++      ELSEIF(seaiceconc .EQ. 0.0 .AND. snowheight .GT. 0.01) THEN
++        ! Snow heights < 10 cm are ignored
++        ! Bare snow albedo assumed to be 0.85
++        albedo_input(:,1) = 0.85*snowcover + albedo(:,1) * (1. - snowcover)
++      ENDIF
++      call photoin( chem_opt, nz, zen, o3toms, esfact,           &
++                    o3top, o2top, albedo_input(:,lu), z_ph, tlev_ph,   &
+                     tlay_ph, airlev_ph, rh_ph, xlwc_ph, o3_ph,   &
+                     acb1_ph, acb2_ph, aoc1_ph, aoc2_ph, aant_ph, & 
+                     aso4_ph, asal_ph,                            &
+diff --git a/chem/module_phot_fastj.F b/chem/module_phot_fastj.F
+index 25684dbe..131fadb3 100644
+--- a/chem/module_phot_fastj.F
++++ b/chem/module_phot_fastj.F
+@@ -1,3 +1,8 @@
++!lm Louis Marelle 2016/5/11: In Fast-J photolysis, use a higher surface
++!   UV-albedo over snow- and ice-covered surfaces.
++!   Albedo values are from Tanskanen and Manninen, ACP, 2007, and are mapped to
++!   USGS land use categories (ivgtyp)
++!
+ !************************************************************************
+ ! This computer software was prepared by Battelle Memorial Institute,
+ ! hereinafter the Contractor, under Contract No. DE-AC05-76RL0 1830 with
+@@ -65,6 +70,10 @@
+ !
+ 	module module_phot_fastj
+ 	integer, parameter :: lunerr = -1
++!lm
++        integer, private, allocatable :: luse2usgs(:)
++!lm
++
+ 
+ 	contains
+ !***********************************************************************
+@@ -76,6 +85,11 @@
+                ph_ch3coch3,ph_ch3coc2h5,ph_hcocho,ph_ch3cocho,         &
+                ph_hcochest,ph_ch3o2h,ph_ch3coo2h,ph_ch3ono2,ph_hcochob,&
+                ph_n2o5,                                                &
++               ivgtyp,                                                 &
++!lm Add land cover type, snow height, snow cover and ice fraction to photolysis
++!   in order to calculate snow- and ice-dependent UV albedos in Fast-J
++               snowh, snowc, xice,                           &
++!lm
+                tauaer1,tauaer2,tauaer3,tauaer4,                        &
+                gaer1,gaer2,gaer3,gaer4,                                &
+                waer1,waer2,waer3,waer4,                                &
+@@ -165,7 +179,13 @@
+    REAL, DIMENSION( ims:ime, kms:kme, jms:jme, 1:4 ),               &
+          INTENT(IN ) ::                                             &
+            l2aer,l3aer,l4aer,l5aer,l6aer,l7aer                      
+-
++  INTEGER, DIMENSION( ims:ime , jms:jme ),                      &
++          INTENT(IN   ) :: ivgtyp
++!lm Add land cover type, snow height, snow cover and ice fraction to photolysis
++!   in order to calculate snow- and ice-dependent UV albedos in Fast-J
++  REAL,  DIMENSION( ims:ime , jms:jme ),                        &
++          INTENT(IN   ) :: snowh, snowc, xice
++!lm
+    REAL, DIMENSION( ims:ime, kms:kme, jms:jme, num_chem ),         &
+          INTENT(INOUT ) ::                                chem
+    REAL,  DIMENSION( ims:ime , kms:kme , jms:jme )         ,    &
+@@ -207,7 +227,11 @@
+       real, dimension(kts:kte+1) :: zatw
+  	     
+       real valuej(kte,nphoto_fastj)
+-
++!lm  snow height, snow cover, ice fraction and land use at i, j
++      real snow_height, snow_cover, ice_fraction
++      integer landtype
++      integer if_fractseaice !config flag for fractional_seaice
++!lm
+       logical processingAerosols
+ 
+ !   set "pegasus" grid size variables
+@@ -328,6 +352,14 @@
+ ! set lat, long
+ 	  sla = xlat(iclm,jclm)
+ 	  slo = xlong(iclm,jclm)
++!lm snow height and cover, ice cover, land use type to pass to the phot scheme
++          snow_height=snowh(iclm,jclm)
++          snow_cover=snowc(iclm,jclm)
++          ice_fraction=xice(iclm,jclm)
++          landtype=int(luse2usgs(ivgtyp(iclm,jclm)))
++          if_fractseaice=config_flags%fractional_seaice
++!lm
++
+ ! set column pressures, temperature, and ozone
+ 	  psfc = p8w(iclm,1,jclm) * 10. ! convert pascals to dynes/cm2
+ 	  do k = kts, lpar
+@@ -348,6 +380,11 @@
+ 	  call interface_fastj(tmidh,sla,slo,julday,           &
+            pbnd, psfc, temp, ozone,                        &
+            dz, cloudmr, airdensity, relhum, zatw,          &
++!lm Add snow height, snowcover, icecover, landuse cat, and fractional sea ice
++!flag
++           snow_height, snow_cover, ice_fraction,             &
++           landtype, if_fractseaice,                       &
++!lm
+            iclm, jclm, lpar, jpnl,                         &
+            curr_secs, valuej, cos_sza, processingAerosols, &
+            sizeaer,extaer,waer,gaer,tauaer,l2,l3,l4,l5,l6,l7)
+@@ -508,6 +545,11 @@
+         subroutine interface_fastj(tmidh,sla,slo,julian_day,   &
+              pbnd, psfc, temp, ozone,                          &
+              dz, cloudmr, airdensity, relhum, zatw,            &
++!lm Add snow height, snowcover, icecover, landuse cat, and fractional sea ice
++!flag
++             snow_height, snow_cover, ice_fraction,               &
++             landtype, if_fractseaice,                         &
++!lm
+              isvode, jsvode, lpar, jpnl,                       &
+       	     curr_secs, valuej, cos_sza, processingAerosols,   &
+              sizeaer,extaer,waer,gaer,tauaer,l2,l3,l4,l5,l6,l7)
+@@ -601,12 +643,33 @@
+    parameter( lfastj_hno4  = 13 )
+    integer nspint           ! Num of spectral intervals across solar 
+    parameter ( nspint = 4 ) ! spectrum for FAST-J
++!lm
++   real, dimension (24) :: snow_uvalb
++!lm
+    real, dimension (nspint),save :: wavmid !cm
+    real, dimension (nspint, kmaxd+1) :: sizeaer,extaer,waer,gaer,tauaer
+    real, dimension (nspint, kmaxd+1) :: l2,l3,l4,l5,l6,l7
+    data wavmid     &
+        / 0.30e-4, 0.40e-4, 0.60e-4 ,0.999e-04 /
+-!jdf
++! Broadband UV albedo for snow-covered surfaces and for bare ground (unitless 0-1)
++   real, parameter ::  snowice_uvalb = 0.836 ! From Tanskanen and Manninen, 2007.
++   real, parameter ::  ground_uvalb = 0.055 ! From the original implementation of this module
++! Snow height (m), snow cover (unitless 0-1), ice fraction (unitless 0-1)
++   real snow_height, snow_cover, ice_fraction !snow height in meters
++   integer landtype
++   integer if_fractseaice !config flag for fractional_seaice
++!!lm Broadband UV albedo for snow covered surfaces, for each of the 24
++!!   USGS land use categories (unitless)
++!   data snow_uvalb & !lm From Tanskanen and Manninen, 2007.
++!       / 0.836, 0.376, 0.376, 0.376, 0.376, 0.376, 0.720, 0.558, &
++!         0.558, 0.720, 0.406, 0.406, 0.278, 0.278, 0.278, 0.836, &
++!         0.720, 0.558, 0.836, 0.720, 0.558, 0.558, 0.836, 0.836 /
++!! Snow height, snow cover, ice fraction and land use at i, j
++!      real snow_height, snow_cover, ice_fract !snow height in meters
++!      integer landtype
++!      integer if_fractseaice !config flag for fractional_seaice
++!!lm
++!!jdf
+ 	real pbnd(0:lpar), psfc
+ 	real temp(lpar), ozone(lpar), surface_albedo
+ 	real dz(lpar), cloudmr(lpar), airdensity(lpar), relhum(lpar), zatw(lpar+1)
+@@ -724,7 +787,36 @@
+ 	   col_ozone(k) = ozone(k)
+ 	end do
+ 
+- 	surface_albedo=0.055
++!!lm   surface_albedo=0.055
++!!lm: use a different surface albedo over snow covered surfaces. Values
++!! by Tanskanen and Manninen, ACP, 2007
++!        surface_albedo = 0.055 !default value from PNNL, about right for most ice/snow free land surfaces
++!        if( landtype .ge. 1 .and. landtype .le. 24) then
++!          if( snow_height >= 0.01 .and. snow_cover >= 0.01) & !10 cm threshold from MOZART, 10% threshold seems right
++!            surface_albedo = snow_cover*snow_uvalb(landtype) + (1.0 - snow_cover) *0.055
++!          if (ice_fract >= 0.15) then !15% is the typical threshold for sea ice extent (see NSIDC)
++!            if(if_fractseaice == 1) then
++!              surface_albedo = 0.836 * ice_fract + (1.0 - ice_fract) * 0.055 !fractional sea ice
++!            else
++!              surface_albedo = 0.836
++!            endif
++!          endif !ice_fract exceeds the threshold of 15%
++!        endif !landtype is in the USGS range, 1 to 24
++!!lm
++! Use a different surface albedo over snow- and ice-covered surfaces
++        if (ice_fraction >= 0.15) then ! if ice > 15% threshold (NSIDC)
++          if(if_fractseaice == 1) then ! if fractional sea ice
++            surface_albedo = snowice_uvalb * ice_fraction + (1.0 - ice_fraction) * ground_uvalb
++          else
++            surface_albedo = snowice_uvalb
++          endif
++        elseif( snow_height >= 0.01) then ! 10 cm threshold for snow-covered land from MOZART
++          surface_albedo = snow_cover * snowice_uvalb + (1.0 - snow_cover) * ground_uvalb
++        else
++          surface_albedo = ground_uvalb
++        end if
++
++
+ 
+ ! set aerosol parameters needed by Fast-J	                         	         	
+         if (processingAerosols) then
+@@ -3446,6 +3538,41 @@
+          return
+          end subroutine rd_tjpl2
+ !********************************************************************
++!lm
++         subroutine fastj_landinit(id,num_land_cat, mminlu_loc)
++         ! this routine initializes the luse2usgs array, used to map land use
++         ! (ivgtyp) categories other than USGS (only MODIS for now) to USGS
++
++         implicit none
++
++         !----------------------------------------------------------------
++         ! Dummy arguments
++         integer, intent(in) :: id, num_land_cat ! domain id and number of
++                                                 ! landuse categories
++         character(len=*), intent(in) :: mminlu_loc !land use mapping type
++         !local variables
++         integer :: i !loop index
++         integer astat !status flag for array allocation
++         !----------------------------------------------------------------
++
++         if( id == 1 .and. .not. allocated(luse2usgs) ) then
++           allocate( luse2usgs(num_land_cat),stat=astat )
++           if( astat /= 0 ) then
++             CALL wrf_message( 'fastj_landinit: failed to allocate luse2usgs')
++             CALL wrf_abort
++           end if
++           if( trim(mminlu_loc) == 'USGS' ) then
++             luse2usgs(:) = (/ (i,i=1,num_land_cat) /)
++           elseif( trim(mminlu_loc) == 'MODIFIED_IGBP_MODIS_NOAH' ) then
++             luse2usgs(:) = (/ 14,13,12,11,15,8,9,10,10,7, &
++                              17,4,1,5,24,19,16,21,22,23 /)
++           endif
++         endif
++
++         end subroutine fastj_landinit
++
++!********************************************************************
++!lm
+ 
+ 
+ end module module_phot_fastj
+diff --git a/chem/module_phot_tuv.F b/chem/module_phot_tuv.F
+index f37d167a..8165be3b 100644
+--- a/chem/module_phot_tuv.F
++++ b/chem/module_phot_tuv.F
+@@ -39,6 +39,7 @@
+    real, allocatable :: w_fac(:)
+    real, allocatable :: etfl(:)
+    real, allocatable :: albedo(:)
++   real, allocatable :: albedo_input(:)
+    real, allocatable :: o2_xs(:)
+    real, allocatable :: so2_xs(:)
+    real, allocatable :: par_wght(:)
+@@ -75,6 +76,7 @@
+                gmt, julday, t_phy, moist, aerwrf,                         &
+                p8w, t8w, p_phy, chem, rho_phy,                            &
+                dz8w, xlat, xlong, z, z_at_w, gd_cloud, gd_cloud2,         &
++               xice, snowc, snowh,                      &
+                bl_cld,bl_cld2,                                            &
+                tauaer1,tauaer2,tauaer3,tauaer4,                           &
+                gaer1,gaer2,gaer3,gaer4,                                   &
+@@ -120,6 +122,8 @@
+    REAL, DIMENSION( ims:ime, kms:kme, jms:jme ),                   &
+          INTENT(INOUT ) ::                                         &
+                gd_cloud,gd_cloud2,bl_cld,bl_cld2
++   real, dimension( ims:ime , jms:jme ),                               &
++            intent(in   ) :: snowh, snowc, xice
+    REAL, DIMENSION( ims:ime, kms:kme, jms:jme ),              &
+          INTENT(IN   ) :: tauaer1, tauaer2, tauaer3, tauaer4, &
+                           waer1, waer2, waer3, waer4,         &
+@@ -596,8 +600,23 @@ has_daylight : &
+                                  + chem(i,kts+1:kte,j,p_no2)*dens_air(kts+1:kte))
+          endif
+ 
++         ! Use a higher albedo over snow and ice
++         IF(xice(i,j) .GT. 0.15) THEN
++           ! Sea ice concentrations < 15 % are ignored
++           ! Bare ice albedo assumed to be 0.85
++           albedo_input(:) = 0.85*xice(i,j) + albedo(:) * (1. - xice(i,j))
++         ELSEIF(xice(i,j) .EQ. 0.0 .AND. snowh(i,j) .GT. 0.01) THEN
++           ! Snow heights < 10 cm are ignored
++           ! Bare snow albedo assumed to be 0.85
++           albedo_input(:) = 0.85*snowc(i,j) + albedo(:) * (1. - snowc(i,j))
++         ELSE
++           albedo_input(:) = albedo(:)
++         ENDIF
++
++
++
+          call tuv_radfld( nlambda_start, config_flags%cld_od_opt, cldfrac, &
+-              nlyr, nwave, zenith, tuv_z, albedo, &
++              nlyr, nwave, zenith, tuv_z, albedo_input, &
+               aircol, o2col, o3col, so2col, no2col, &
+               tauaer300, tauaer400, tauaer600, tauaer999, &
+               waer300, waer400, waer600, waer999, &
+@@ -1309,7 +1328,7 @@ master_proc_a: &
+                 air_dens_data(n_air_dens_data),stat=astat )
+       ierr = astat + ierr
+       allocate( wl(nwave+1), wc(nwave), dw(nwave), w_fac(nwave), &
+-                etfl(nwave), albedo(nwave), stat=astat )
++                etfl(nwave), albedo(nwave), albedo_input(nwave), stat=astat )
+       ierr = astat + ierr
+       if( .not. is_full_tuv ) then
+         allocate( temp_tab(ntemp), conc_tab(nconc), stat=astat )
+diff --git a/chem/photolysis_driver.F b/chem/photolysis_driver.F
+index 31fcc06b..72f1f597 100755
+--- a/chem/photolysis_driver.F
++++ b/chem/photolysis_driver.F
+@@ -1,5 +1,7 @@
+ !WRF:MODEL_LAYER:CHEMISTRY
+ !
++!lm Louis Marelle 2016/5/11: In Fast-J photolysis, use a higher surface
++!   UV-albedo over snow- and ice-covered surfaces.
+       SUBROUTINE photolysis_driver (id,curr_secs,ktau,dtstep,            &
+                config_flags,haveaer,                                     &
+                dt_cld,af_dir,af_dn,af_up,par,erythema,                   &
+@@ -23,6 +25,10 @@
+                nref0, nw0, tuv_jmax0,                                    &
+                ph_radfld, ph_adjcoe, ph_prate,                           &
+                wc, zref,                                                 &
++!lm Add snow height, snow cover and ice fraction to photolysis in order to
++!   calculate snow- and ice-dependent UV albedos in Fast-J
++               snowh, snowc, xice, lu_index,                                       &
++!lm
+                tauaer1,tauaer2,tauaer3,tauaer4,                          &
+                gaer1,gaer2,gaer3,gaer4,                                  &
+                waer1,waer2,waer3,waer4,                                  &
+@@ -135,6 +141,11 @@
+           INTENT(IN   ) ::                                             &
+                                                      xlat,             &
+                                                      xlong
++!lm Add snow height, snow cover and ice fraction to photolysis in order to
++!   calculate snow- and ice-dependent UV albedos in Fast-J
++   REAL,  DIMENSION( ims:ime , jms:jme )                   ,           &
++          INTENT(IN   ) ::     snowh, snowc, xice, lu_index
++!lm
+    REAL,  DIMENSION( ims:ime, jms:jme ),                                & 
+           OPTIONAL, INTENT(IN ) :: o3_gfs_du
+ 
+@@ -177,6 +188,7 @@
+                ims,ime, jms,jme, kms,kme,                              &
+                its,ite, jts,jte, kts,kte                               )
+      CASE (PHOTFASTJ)
++! jdf add ivgtyp for mexico city
+        call wrf_debug(15,'calling fastj_driver')
+        call fastj_driver(id,curr_secs,dtstep,config_flags,             &
+                gmt,julday,t_phy,moist,p8w,p_phy,                       &
+@@ -186,6 +198,11 @@
+                ph_ch3coch3,ph_ch3coc2h5,ph_hcocho,ph_ch3cocho,         &
+                ph_hcochest,ph_ch3o2h,ph_ch3coo2h,ph_ch3ono2,ph_hcochob,&
+                ph_n2o5,                                                &
++               ivgtyp,                                                 &
++!lm Add land cover type, snow height, snow cover and ice fraction to photolysis
++!   in order to calculate snow- and ice-dependent UV albedos in Fast-J
++               snowh, snowc, xice,                                     &
++!lm
+                tauaer1,tauaer2,tauaer3,tauaer4,                        &
+                gaer1,gaer2,gaer3,gaer4,                                &
+                waer1,waer2,waer3,waer4,                                &
+@@ -201,6 +218,7 @@
+                               p_phy, t_phy, rho_phy, p8w, t8w,         &
+                               xlat, xlong,    z_at_w,                  &
+                               moist, chem, gd_cloud,gd_cloud2,         &
++                              xice, snowc, snowh,                      &
+                               ph_no2,ph_o31d,ph_o33p,ph_hno2,          &
+                               ph_hno3,ph_hno4,ph_no3o2,ph_no3o,        &
+                               ph_h2o2,ph_ch2om,ph_ch2or,ph_ch3cho,     &
+@@ -230,6 +248,7 @@
+                gmt, julday, t_phy, moist, aerwrf,                      &
+                p8w, t8w, p_phy, chem, rho_phy,                         &
+                dz8w, xlat, xlong, z, z_at_w, gd_cloud, gd_cloud2,      &
++               xice, snowc, snowh,                                     &
+                bl_cld,bl_cld2,                                         &
+                tauaer1,tauaer2,tauaer3,tauaer4,                        &
+                gaer1,gaer2,gaer3,gaer4,                                &
+diff --git a/phys/module_mp_morr_two_moment.F b/phys/module_mp_morr_two_moment.F
+index 4869e12f..4b3fa5d1 100644
+--- a/phys/module_mp_morr_two_moment.F
++++ b/phys/module_mp_morr_two_moment.F
+@@ -905,7 +905,16 @@ SUBROUTINE MP_MORR_TWO_MOMENT(ITIMESTEP,                       &
+       SNOWNCV(i,j) = SNOWPRT1D
+       GRAUPELNC(i,j) = GRAUPELNC(I,J)+GRPLPRT1D
+       GRAUPELNCV(i,j) = GRPLPRT1D
+-      SR(i,j) = SNOWRT1D/(PRECPRT1D+1.E-12)
++!lm      SR(i,j) = SNOWRT1D/(PRECPRT1D+1.E-12)
++!lm The calculation of SR often gives results out of the 0-1 range (when prec
++!quantities are small). Due to another problem in noahlsm this can cause bugs in
++!the snow cover and snow height calcs. I'm fixing the bugs here and in NOAHLSM
++!Ideally, the code should not calculate SR when SNOWRT1D is too small. I'm also
++!still not sure if this is not related to another bug leading to negative
++!SNOWRT1D
++      SR(i,j) = min(1.,max(0.,SNOWRT1D/(PRECPRT1D+1.E-12)))
++!lm
++
+ 
+ !+---+-----------------------------------------------------------------+
+          IF ( PRESENT (diagflag) ) THEN
+diff --git a/phys/module_sf_noah_seaice_drv.F b/phys/module_sf_noah_seaice_drv.F
+index b7c34ffb..a3628767 100644
+--- a/phys/module_sf_noah_seaice_drv.F
++++ b/phys/module_sf_noah_seaice_drv.F
+@@ -332,15 +332,17 @@ contains
+           ! SR from e.g. Ferrier microphysics
+           ! otherwise define from 1st atmos level temperature
+ 
+-          IF (FRPCPN) THEN
+-             FFROZP = SR(I,J)
+-          ELSE
++!lm see in surface_driver why I commented this          IF (FRPCPN) THEN
++!          IF (FRPCPN) THEN
++!             FFROZP = SR(I,J)
++!          ELSE
++
+              IF (SFCTMP <=  273.15) THEN
+                 FFROZP = 1.0
+              ELSE
+                 FFROZP = 0.0
+              ENDIF
+-          ENDIF
++!          ENDIF
+ 
+           ! Sea-ice point has deep-level temperature of about -1.8 C
+           TBOT = 271.36
+diff --git a/phys/module_sf_noahdrv.F b/phys/module_sf_noahdrv.F
+index 21bced2f..f1a58543 100644
+--- a/phys/module_sf_noahdrv.F
++++ b/phys/module_sf_noahdrv.F
+@@ -856,15 +856,15 @@ CONTAINS
+ ! if "SR" present, set frac of frozen precip ("FFROZP") = snow-ratio ("SR", range:0-1)
+ ! SR from e.g. Ferrier microphysics
+ ! otherwise define from 1st atmos level temperature
+-       IF(FRPCPN) THEN
+-          FFROZP=SR(I,J)
+-        ELSE
++!lm       IF(FRPCPN) THEN
++!lm comment this, see surface driver          FFROZP=SR(I,J)
++!lm        ELSE
+           IF (SFCTMP <=  273.15) THEN
+             FFROZP = 1.0
+ 	  ELSE
+ 	    FFROZP = 0.0
+ 	  ENDIF
+-        ENDIF
++!lm        ENDIF
+ !***
+         IF((XLAND(I,J)-1.5).GE.0.)THEN                                  ! begining of land/sea if block
+ ! Open water points
+diff --git a/phys/module_surface_driver.F b/phys/module_surface_driver.F
+index 650dd4fe..cc19e3fe 100644
+--- a/phys/module_surface_driver.F
++++ b/phys/module_surface_driver.F
+@@ -2602,9 +2602,15 @@ CONTAINS
+ !          PRESENT(frc_urb2d) .AND. PRESENT(utype_urb2d)   .AND.      &
+                                                       .TRUE. ) THEN
+ !------------------------------------------------------------------
+-         IF( PRESENT(sr) ) THEN
+-           frpcpn=.true.
+-         ENDIF
++
++!lm Comment this, as this can cause two problems: some of the SR values seem
++!wrong (this is probably an issue with the Morrison microphysics) and SR is 0
++!over most of the domain (no grid scale precip). This means that SR can
++!possibly prevent the cumulus precipitation to ever be considered as snow
++!(check this)
++!lm         IF( PRESENT(sr) ) THEN
++!lm           frpcpn=.true.
++!lm         ENDIF
+          IF ( FRACTIONAL_SEAICE == 1) THEN
+             ! The fields passed to LSM need to represent the full ice values, not
+             ! the fractional values.  Convert ALBEDO and EMISS from the blended value 
+-- 
+2.31.1
+

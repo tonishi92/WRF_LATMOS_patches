@@ -1,0 +1,33 @@
+From d865bf6f9c79062c8c21504fe3cd0f8145a0725c Mon Sep 17 00:00:00 2001
+From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
+Date: Wed, 23 Feb 2022 16:49:55 +0100
+Subject: [PATCH 06/54] Disable mosaic_initmixrats to use wrfinput/wrfbdy
+ values
+
+Set mosaic_init_wrf_mixrats_flagaa = 0 in chem/module_mosaic_initmixrats.F in
+order to use boundary conditions and initial conditions for MOSAIC aerosols
+from the wrfinput and wrfbdy input files.
+---
+ chem/module_mosaic_initmixrats.F | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/chem/module_mosaic_initmixrats.F b/chem/module_mosaic_initmixrats.F
+index 453ac3e0..fc4aa8a2 100644
+--- a/chem/module_mosaic_initmixrats.F
++++ b/chem/module_mosaic_initmixrats.F
+@@ -26,8 +26,11 @@
+ 
+ 	USE module_state_description
+ 
+-	integer, parameter :: mosaic_init_wrf_mixrats_flagaa = 1
++	integer, parameter :: mosaic_init_wrf_mixrats_flagaa = 0
+                             ! turns subr mosaic_init_wrf_mixrats on/off
++                            !LMarelle disable to allow using wrfinput and wrfbdy
++                            !values. This should be controlled by a namelist
++                            !option.
+ 
+ 	contains
+ 
+-- 
+2.31.1
+

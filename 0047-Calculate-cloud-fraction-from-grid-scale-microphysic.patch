@@ -1,0 +1,633 @@
+From 830711c11260cc9f543544fafe1b4855647fd24e Mon Sep 17 00:00:00 2001
+From: tonishi92 <tatsuo.onishi@gmail.com>
+Date: Tue, 17 Jan 2023 13:38:47 +0100
+Subject: [PATCH 47/54] Calculate cloud fraction from grid-scale microphysics
+
+Add a variable cldfra_ls, containing the cloud fraction from large-scale
+microphysics (grid-scale clouds). If cu_rad_feedback is off, cldfra_ls
+is equal to cldfra.
+
+Use cldfra_ls instead of cldfra in several chem modules.....
+In chem_driver, add cldfra_ls to the call to several subroutines, or
+replace cldfra by cldfra_ls. Some of the wetscav routines, mixactivate,
+and some cloudchem routines, expect cldfra to be the grid-scale cloud
+fraction, but if cu_rad_feedback is on, cldfra also includes cumuli.
+---
+ Registry/Registry.EM_COMMON         |   1 +
+ chem/chem_driver.F                  |   9 +-
+ chem/cloudchem_driver.F             |   7 +-
+ chem/module_mozcart_wetscav.F       | 271 +---------------------------
+ chem/module_wetscav_driver.F        |  11 +-
+ dyn_em/module_first_rk_step_part1.F |   1 +
+ phys/module_mixactivate.F           |  13 +-
+ phys/module_radiation_driver.F      |  34 +++-
+ 8 files changed, 53 insertions(+), 294 deletions(-)
+
+diff --git a/Registry/Registry.EM_COMMON b/Registry/Registry.EM_COMMON
+index 3faa38a9..270c63b4 100644
+--- a/Registry/Registry.EM_COMMON
++++ b/Registry/Registry.EM_COMMON
+@@ -1703,6 +1703,7 @@ state    real  CCLDFRA         ikj      misc        1         -      r        "C
+ state    real  CLDFRA_OLD      ikj      misc        1         -      r        "CLDFRA_OLD"            "previous time level cldfra"                           ""
+ state    real  CLDFRA_BL       ikj      misc        1         -      r        "CLDFRA_BL"             "CLOUD FRACTION pbl"                                   ""
+ state    real  CLDT             ij      misc        1         -      -        "CFRACT"                "TOTAL CLOUD FRACTION"                                 ""
++state    real  CLDFRA_LS       ikj      misc        1         -      r        "CLDFRA_LS"             "Cloud fraction from large scale microphysics"   ""
+ #state    real  CLDL             ij      misc        1         -      -        "CFRACL"                "LOW CLOUD FRACTION (ETA GREATER THAN 0.69)"           ""
+ #state    real  LWP              ij      misc        1         -      -        "LWP"                   "LIQUID CLOUD WATER PATH"                              "kg m-2"
+ state    real  SWDOWN           ij      misc        1         -      rhd      "SWDOWN"                "DOWNWARD SHORT WAVE FLUX AT GROUND SURFACE"           "W m-2"      
+diff --git a/chem/chem_driver.F b/chem/chem_driver.F
+index 26afd756..b9741bf5 100755
+--- a/chem/chem_driver.F
++++ b/chem/chem_driver.F
+@@ -1312,7 +1312,7 @@
+             call dry_dep_driver(grid%id,curr_secs,ktau,grid%dt,config_flags,          &
+                  grid%gmt,ijulian,t_phy,moist,scalar,p8w,t8w,vvel,                &
+                  rri,p_phy,grid%snowc,chem,tracer,rho,dz8w,rh,grid%exch_h,grid%hfx,grid%dx,      & 
+-                 grid%cldfra, grid%cldfra_old,grid%raincv_b,seasin,dustin,            &
++                 grid%cldfra_ls,grid%cldfra_old,grid%raincv_b,seasin,dustin,          &
+ 	         grid%ccn1, grid%ccn2, grid%ccn3, grid%ccn4, grid%ccn5, grid%ccn6,    &
+                  grid%qndropsource,grid%ivgtyp,grid%tsk,grid%gsw,grid%vegfra,pbl_h,   &
+                  grid%rmol,grid%ust,grid%znt,grid%xlat,grid%xlong,                    &
+@@ -1769,10 +1769,10 @@ if ( cam_mam_aerosols ) &
+                 grid%id, ktau, grid%ktauc, grid%dt, dtstepc, config_flags,              &
+                 t_phy, p_phy, rho, rri, dz8w, zmid, z_at_w,                             &
+ #if (NMM_CORE == 1)
+-                moist_trans, grid%cldfra, grid%ph_no2,                                  &
++                moist_trans, grid%cldfra_ls, grid%ph_no2,                                  &
+ #endif
+ #if (EM_CORE == 1)
+-                moist, grid%cldfra, grid%ph_no2,                                        &
++                moist, grid%cldfra_ls, grid%ph_no2,                                        &
+ #endif
+                 chem, grid%chem_cupflag,                                                &
+                 grid%cupflag, grid%shall, grid%tcloud_cup, grid%nca, grid%wact_cup,     &
+@@ -1833,6 +1833,7 @@ if ( cam_mam_aerosols ) &
+                t_phy, p_phy, rho, rri, dz8w,                                          &
+                p8w,grid%prain3d,scalar,grid%dvmrdt_sv13d,grid%dvmrcwdt_sv13d,         &
+                grid%f_ice_phy,grid%f_rain_phy,grid%cldfrai, grid%cldfral,             &
++               grid%cldfra_ls,                                                        &
+                moist, grid%cldfra, grid%cldfra_mp_all, grid%ph_no2,                   &
+                chem, gas_aqfrac, numgas_mam,grid%is_CAMMGMP_used,                     &
+                grid%ph_cw,                                                            &
+@@ -1894,7 +1895,7 @@ if ( cam_mam_aerosols ) &
+         call wetscav_driver (grid%id,ktau,grid%dt,grid%ktauc,config_flags,dtstepc,    &
+               rri,t_phy,moist,p8w,t8w,                                                &
+               grid%dx, grid%dy,                                                       &
+-              p_phy,chem,rho,grid%cldfra,grid%cldfra2,                                &
++              p_phy,chem,rho,grid%cldfra,grid%cldfra2,grid%cldfra_ls,                                &
+               wetscav_frcing(ims,kms,jms,p_rainprod),                                 &
+               wetscav_frcing(ims,kms,jms,p_evapprod),                                 &
+               grid%hno3_col_mdel,                                                     &                
+diff --git a/chem/cloudchem_driver.F b/chem/cloudchem_driver.F
+index e92a1c2b..12e9a81a 100644
+--- a/chem/cloudchem_driver.F
++++ b/chem/cloudchem_driver.F
+@@ -14,7 +14,7 @@
+                id, ktau, ktauc, dtstep, dtstepc, config_flags,       &
+                t_phy, p_phy, rho_phy, alt, dz8w,                           &
+                p8w, prain3d,scalar,dvmrdt_sv13d,dvmrcwdt_sv13d,      & !Balwinder.Singh@pnnl.gov: Variables required for CAM-MAM cloud chemistry
+-               f_ice_phy, f_rain_phy, cldfrai, cldfral,              &
++               f_ice_phy, f_rain_phy, cldfrai, cldfral, cldfra_ls,   &
+ 	       moist, cldfra, cldfra_mp_all, ph_no2,                 &
+ 	       chem, gas_aqfrac, numgas_aqfrac,                      &
+                is_CAMMGMP_used,                                      &!BSINGH:01/31/2013: Added is_CAMMGMP_used for CAM_MAM_cloudchem
+@@ -153,6 +153,7 @@
+                                 alt,                                &
+                                 dz8w,                               &
+                                 cldfra,                             &
++                                cldfra_ls,                          &
+                                 ph_no2,                             &
+                                 p8w,                                & !Balwinder.Singh@pnnl.gov: Variables required for CAM-MAM cloud chemistry
+                                 prain3d,                            &
+@@ -202,7 +203,7 @@
+        call mosaic_cloudchem_driver(                  &
+             id, ktau, ktauc, dtstepc, config_flags,   &
+             p_phy, t_phy, rho_phy, alt,               &
+-            cldfra, ph_no2,                           &
++            cldfra_ls, ph_no2,                        &
+             moist, chem, ph_cw,                       &
+             gas_aqfrac, numgas_aqfrac,                &
+             ids,ide, jds,jde, kds,kde,                &
+@@ -216,7 +217,7 @@
+        call sorgam_cloudchem_driver(                  &
+             id, ktau, ktauc, dtstepc, config_flags,   &
+             p_phy, t_phy, rho_phy, alt,               &
+-            cldfra, ph_no2,                           &
++            cldfra_ls, ph_no2,                        &
+             moist, chem,                              &
+             gas_aqfrac, numgas_aqfrac,                &
+             ids,ide, jds,jde, kds,kde,                &
+diff --git a/chem/module_mozcart_wetscav.F b/chem/module_mozcart_wetscav.F
+index b122b283..e84174ac 100644
+--- a/chem/module_mozcart_wetscav.F
++++ b/chem/module_mozcart_wetscav.F
+@@ -249,7 +249,7 @@ is_allocated : &
+                                                                  qs_b4mp
+ 
+    REAL,  DIMENSION( ims:ime , kms:kme , jms:jme )         ,        &
+-         INTENT(INOUT ) ::                                cldfra
++         INTENT(IN    ) ::                                cldfra
+ 
+ ! 20131125 acd_ck_washout start
+ !   REAL,  DIMENSION( ims:ime , jms:jme )         ,                  &
+@@ -311,14 +311,6 @@ is_allocated : &
+ has_wet_scav : &
+    if( hetcnt > 0 ) then
+ !----------------------------------------------------------------------
+-!  form cloud fraction
+-!----------------------------------------------------------------------
+-     CALL cal_cldfra3( CLDFRA, qc_b4mp, qi_b4mp, qs_b4mp,         &
+-                      ids,ide, jds,jde, kds,kde,                  &
+-                      ims,ime, jms,jme, kms,kme,                  &
+-                      its,ite, jts,jte, kts,kte                   )
+-
+-!----------------------------------------------------------------------
+ !  washout soluble species
+ !----------------------------------------------------------------------
+      ktem1 = kte - 1
+@@ -443,267 +435,6 @@ species_loop1 : &
+ 
+    end subroutine wetscav_mozcart
+ 
+-   SUBROUTINE cal_cldfra( CLDFRA,QC,QI,                               &
+-                          ids,ide, jds,jde, kds,kde,                  &
+-                          ims,ime, jms,jme, kms,kme,                  &
+-                          its,ite, jts,jte, kts,kte                   )
+-!---------------------------------------------------------------------
+-! !DESCRIPTION:
+-! Compute cloud fraction from input ice and cloud water fields
+-! if provided.
+-!
+-! Whether QI or QC is active or not is determined from the indices of
+-! the fields into the 4D scalar arrays in WRF. These indices are
+-! P_QI and P_QC, respectively, and they are passed in to the routine
+-! to enable testing to see if QI and QC represent active fields in
+-! the moisture 4D scalar array carried by WRF.
+-!
+-! If a field is active its index will have a value greater than or
+-! equal to PARAM_FIRST_SCALAR, which is also an input argument to
+-! this routine.
+-!EOP
+-!---------------------------------------------------------------------
+-
+-   IMPLICIT NONE
+-
+-   INTEGER,  INTENT(IN   )   ::           ids,ide, jds,jde, kds,kde, &
+-                                          ims,ime, jms,jme, kms,kme, &
+-                                          its,ite, jts,jte, kts,kte
+-
+-   REAL, DIMENSION( ims:ime, kms:kme, jms:jme ), INTENT(OUT  ) ::    &
+-                                                             CLDFRA
+-
+-   REAL, DIMENSION( ims:ime, kms:kme, jms:jme ), INTENT(IN   ) ::    &
+-                                                                 QI, &
+-                                                                 QC
+-!----------------------------------------------------------------------
+-!  local variables
+-!----------------------------------------------------------------------
+-!  REAL, parameter :: thresh = 1.e-6
+-   REAL, parameter :: thresh = 1.e-9
+-
+-   INTEGER :: j,k
+-
+-   DO j = jts,jte
+-     DO k = kts,kte-1
+-       where( (qc(its:ite,k,j) + qi(its:ite,k,j)) > thresh )
+-         cldfra(its:ite,k,j) = one
+-       elsewhere
+-         cldfra(its:ite,k,j) = zero
+-       endwhere
+-     ENDDO
+-   ENDDO
+-
+-   END SUBROUTINE cal_cldfra
+-
+-   SUBROUTINE cal_cldfra3( CLDFRA,QC,QI, QS,                          &
+-                          ids,ide, jds,jde, kds,kde,                  &
+-                          ims,ime, jms,jme, kms,kme,                  &
+-                          its,ite, jts,jte, kts,kte                   )
+-!---------------------------------------------------------------------
+-! !DESCRIPTION:
+-! Compute cloud fraction from input ice and cloud water fields
+-! if provided.
+-!
+-! Whether QI or QC is active or not is determined from the indices of
+-! the fields into the 4D scalar arrays in WRF. These indices are
+-! P_QI and P_QC, respectively, and they are passed in to the routine
+-! to enable testing to see if QI and QC represent active fields in
+-! the moisture 4D scalar array carried by WRF.
+-!
+-! If a field is active its index will have a value greater than or
+-! equal to PARAM_FIRST_SCALAR, which is also an input argument to
+-! this routine.
+-!EOP
+-!---------------------------------------------------------------------
+-
+-   IMPLICIT NONE
+-
+-   INTEGER,  INTENT(IN   )   ::           ids,ide, jds,jde, kds,kde, &
+-                                          ims,ime, jms,jme, kms,kme, &
+-                                          its,ite, jts,jte, kts,kte
+-
+-   REAL, DIMENSION( ims:ime, kms:kme, jms:jme ), INTENT(OUT  ) ::    &
+-                                                             CLDFRA
+-
+-   REAL, DIMENSION( ims:ime, kms:kme, jms:jme ), INTENT(IN   ) ::    &
+-                                                                 QI, &
+-                                                                 QC, &
+-                                                                 QS
+-!----------------------------------------------------------------------
+-!  local variables
+-!----------------------------------------------------------------------
+-   REAL, parameter :: thresh = 1.e-9
+-
+-   INTEGER :: j
+-
+-   DO j = jts,jte
+-     where( (qc(its:ite,kts:kte,j) + qi(its:ite,kts:kte,j) + qs(its:ite,kts:kte,j)) > thresh )
+-       cldfra(its:ite,kts:kte,j) = one
+-     elsewhere
+-       cldfra(its:ite,kts:kte,j) = zero
+-     endwhere
+-   ENDDO
+-
+-   END SUBROUTINE cal_cldfra3
+-
+-   SUBROUTINE cal_cldfra2( CLDFRA, QV, QC, QI, QS,                     &
+-                           t_phy, p_phy,                               &
+-                           ids,ide, jds,jde, kds,kde,                  &
+-                           ims,ime, jms,jme, kms,kme,                  &
+-                           its,ite, jts,jte, kts,kte                   )
+-
+-!----------------------------------------------------------------------
+-!  dummy arguments
+-!----------------------------------------------------------------------
+-   INTEGER,  INTENT(IN   )   ::           ids,ide, jds,jde, kds,kde, &
+-                                          ims,ime, jms,jme, kms,kme, &
+-                                          its,ite, jts,jte, kts,kte
+-
+-   REAL, DIMENSION( ims:ime, kms:kme, jms:jme ), INTENT(OUT  ) ::    &
+-                                                             CLDFRA
+-
+-   REAL, DIMENSION( ims:ime, kms:kme, jms:jme ), INTENT(IN   ) ::    &
+-                                                                 QV, &
+-                                                                 QI, &
+-                                                                 QC, &
+-                                                                 QS, &
+-                                                              t_phy, &
+-                                                              p_phy
+-
+-
+-!----------------------------------------------------------------------
+-!  local variables
+-!----------------------------------------------------------------------
+-   integer, parameter  :: idbg = 144, kdbg = 15, jdbg = 147
+-   REAL    , PARAMETER :: ALPHA0 = 100.
+-   REAL    , PARAMETER :: GAMMA = 0.49
+-   REAL    , PARAMETER :: QCLDMIN = 1.E-12
+-   REAL    , PARAMETER :: PEXP = 0.25
+-   REAL    , PARAMETER :: RHGRID =1.0
+-   REAL    , PARAMETER :: SVP1 = 0.61078
+-   REAL    , PARAMETER :: SVP2 = 17.2693882
+-   REAL    , PARAMETER :: SVPI2 = 21.8745584
+-   REAL    , PARAMETER :: SVP3 = 35.86
+-   REAL    , PARAMETER :: SVPI3 = 7.66
+-   REAL    , PARAMETER :: SVPT0 = 273.15
+-   REAL    , PARAMETER :: r_d = 287.
+-   REAL    , PARAMETER :: r_v = 461.6
+-   REAL    , PARAMETER :: ep_2 = r_d/r_v
+-
+-   INTEGER :: i,j,k
+-   INTEGER :: imax, jmax, kmax
+-   REAL    :: RHUM, tc, esw, esi, weight, qvsw, qvsi, qvs_weight
+-   REAL    :: QCLD, DENOM, ARG, SUBSAT, wrk
+-   REAL    :: relhum_max, wrk_max
+-
+-
+-! !DESCRIPTION:
+-!----------------------------------------------------------------------
+-! Compute cloud fraction from input ice and cloud water fields
+-! if provided.
+-!
+-! Whether QI or QC is active or not is determined from the indices of
+-! the fields into the 4D scalar arrays in WRF. These indices are 
+-! P_QI and P_QC, respectively, and they are passed in to the routine
+-! to enable testing to see if QI and QC represent active fields in
+-! the moisture 4D scalar array carried by WRF.
+-! 
+-! If a field is active its index will have a value greater than or
+-! equal to PARAM_FIRST_SCALAR, which is also an input argument to 
+-! this routine.
+-!----------------------------------------------------------------------
+-!EOP
+-
+-
+-!-----------------------------------------------------------------------
+-!     COMPUTE GRID-SCALE CLOUD COVER FOR RADIATION
+-!     (modified by Ferrier, Feb '02)
+-!
+-!     Cloud fraction parameterization follows Randall, 1994
+-!     (see Hong et al., 1998)
+-!-----------------------------------------------------------------------
+-! Note: ep_2=287./461.6 Rd/Rv
+-! Note: R_D=287.
+-
+-! Alternative calculation for critical RH for grid saturation
+-!     RHGRID=0.90+.08*((100.-DX)/95.)**.5
+-
+-! Calculate saturation mixing ratio weighted according to the fractions of
+-! water and ice.
+-! Following:
+-! Murray, F.W. 1966. ``On the computation of Saturation Vapor Pressure''  J. Appl. Meteor.  6 p.204
+-!    es (in mb) = 6.1078 . exp[ a . (T-273.16)/ (T-b) ]
+-!
+-!       over ice        over water
+-! a =   21.8745584      17.2693882
+-! b =   7.66            35.86
+-!---------------------------------------------------------------------
+-
+-    CLDFRA(its:ite,kts:kte,jts:jte) = 0.
+-    relhum_max = -100.
+-    wrk_max    = -10000.
+-    imax = 0; kmax = 0; jmax = 0
+-
+-    DO j = jts,jte
+-      DO k = kts,kte
+-        DO i = its,ite
+-!---------------------------------------------------------------------
+-!    Determine cloud fraction (modified from original algorithm)
+-!---------------------------------------------------------------------
+-          QCLD = QI(i,k,j) + QC(i,k,j) + QS(i,k,j)
+-has_cloud : &
+-          IF( QCLD >= QCLDMIN ) THEN
+-            tc   = t_phy(i,k,j) - SVPT0
+-            esw  = 1000.0 * SVP1 * EXP( SVP2  * tc / ( t_phy(i,k,j) - SVP3  ) )
+-            esi  = 1000.0 * SVP1 * EXP( SVPI2 * tc / ( t_phy(i,k,j) - SVPI3 ) )
+-            QVSW = EP_2 * esw / ( p_phy(i,k,j) - esw )
+-            QVSI = EP_2 * esi / ( p_phy(i,k,j) - esi )
+-
+-            weight     = (QI(i,k,j) + QS(i,k,j)) / QCLD
+-            QVS_WEIGHT = (1. - weight)*QVSW + weight*QVSI
+-            RHUM       = QV(i,k,j)/QVS_WEIGHT              !--- Relative humidity
+-!---------------------------------------------------------------------
+-!    Assume zero cloud fraction if there is no cloud mixing ratio
+-!---------------------------------------------------------------------
+-            IF( RHUM >= RHGRID )THEN
+-!---------------------------------------------------------------------
+-!    Assume cloud fraction of unity if near saturation and the cloud
+-!    mixing ratio is at or above the minimum threshold
+-!---------------------------------------------------------------------
+-              CLDFRA(i,k,j) = 1.
+-            ELSE
+-!---------------------------------------------------------------------
+-!    Adaptation of original algorithm (Randall, 1994; Zhao, 1995)
+-!    modified based on assumed grid-scale saturation at RH=RHgrid.
+-!---------------------------------------------------------------------
+-              SUBSAT = MAX( 1.E-10,RHGRID*QVS_WEIGHT - QV(i,k,j) )
+-              DENOM  = SUBSAT**GAMMA
+-              ARG    = MAX( -6.9,-ALPHA0*QCLD/DENOM )    ! <-- EXP(-6.9)=.001
+-!---------------------------------------------------------------------
+-!   prevent negative values  (new)
+-!---------------------------------------------------------------------
+-              RHUM = MAX( 1.E-10, RHUM )
+-              wrk  = (RHUM/RHGRID)**PEXP*(1. - EXP( ARG ))
+-              if( rhum >= relhum_max ) then
+-                relhum_max = rhum
+-                imax = i
+-                kmax = k
+-                jmax = j
+-              endif
+-              IF( wrk >= .01 ) then
+-                CLDFRA(i,k,j) = wrk
+-                if( wrk >= wrk_max ) then
+-                  wrk_max = wrk
+-                endif
+-              ENDIF
+-            ENDIF
+-          ENDIF has_cloud
+-        END DO
+-      END DO
+-    END DO
+-
+-   END SUBROUTINE cal_cldfra2
+ 
+    subroutine WASHOUT( LPAR, NTRACE, DTSCAV, QTTJFL, QM, &
+                        POFL, DELZ, RLS, CLWC, CIWC, &
+diff --git a/chem/module_wetscav_driver.F b/chem/module_wetscav_driver.F
+index 9dcc6799..f4298244 100644
+--- a/chem/module_wetscav_driver.F
++++ b/chem/module_wetscav_driver.F
+@@ -26,7 +26,7 @@ CONTAINS
+       subroutine wetscav_driver( id, ktau, dtstep, ktauc, config_flags,    &
+                dtstepc, alt, t_phy, moist, p8w,                            &
+                t8w, dx, dy, p_phy, chem,                                   &
+-               rho_phy, cldfra, cldfra2, rainprod, evapprod,               &
++               rho_phy, cldfra, cldfra2, cldfra_ls, rainprod, evapprod,               &
+                hno3_col_mdel, qlsink, precr, preci, precs, precg,          &
+                wdflx, &
+ 	       gas_aqfrac, numgas_aqfrac, dz8w,                            &
+@@ -245,6 +245,7 @@ CONTAINS
+                                                       dz8w,         &
+ 	                            qlsink,precr,preci,precs,precg, &
+                                                     rho_phy,cldfra, &
++                                                    cldfra_ls,      &
+ !variables needed for cam_mam_wetscav
+                                      cldfrai,cldfral,cldfra_mp_all, &
+                                                p_hyd,dlf3d,dlf2_3d, & 
+@@ -404,7 +405,7 @@ REAL,  DIMENSION( ims:ime , kms:kme , jms:jme , ntot_amode ),       &
+          CRI_MOSAIC_8BIN_AQ_KPP, CRI_MOSAIC_4BIN_AQ_KPP,SAPRC99_MOSAIC_8BIN_VBS2_AQ_KPP )!BSINGH(12/05/2013): Added for SAPRC 8 bin vbs )
+        CALL wrf_debug(15,'wetscav_driver calling mosaic_wetscav_driver')
+        call wetscav_cbmz_mosaic (id,ktau,dtstep,ktauc,config_flags,        &
+-               dtstepc,alt,t_phy,p8w,t8w,p_phy,chem,rho_phy,cldfra,        &
++               dtstepc,alt,t_phy,p8w,t8w,p_phy,chem,rho_phy,cldfra_ls,        &
+                qlsink,precr,preci,precs,precg, qsrflx,                     &
+                gas_aqfrac, numgas_aqfrac,                                  &
+ !!lm
+@@ -436,7 +437,7 @@ REAL,  DIMENSION( ims:ime , kms:kme , jms:jme , ntot_amode ),       &
+        endif
+        call wetscav_mozcart( id, ktau, dtstep, ktauc, config_flags,             &
+                              dtstepc, t_phy, p8w, t8w, p_phy,                   &
+-                             chem, rho_phy, cldfra2, rainrate, evaprate,        &
++                             chem, rho_phy, cldfra_ls, rainrate, evaprate,        &
+                              qv_b4mp, qc_b4mp, qi_b4mp, qs_b4mp,                &
+                              gas_aqfrac, numgas_aqfrac, dz8w, dx, dy,           &
+                              moist(ims,kms,jms,p_qv), moist(ims,kms,jms,p_qc),  &
+@@ -469,7 +470,7 @@ REAL,  DIMENSION( ims:ime , kms:kme , jms:jme , ntot_amode ),       &
+          evaprate(:,:,:) = 0.
+        endif
+        call wetscav_mozart_mosaic (id,ktau,dtstep,ktauc,config_flags,        &
+-               dtstepc,alt,t_phy,p8w,t8w,p_phy,chem,rho_phy,cldfra,        &
++               dtstepc,alt,t_phy,p8w,t8w,p_phy,chem,rho_phy,cldfra_ls,        &
+                qlsink,precr,preci,precs,precg, qsrflx,                     &
+                gas_aqfrac, numgas_aqfrac,                                  &
+ !!lm
+@@ -484,7 +485,7 @@ REAL,  DIMENSION( ims:ime , kms:kme , jms:jme , ntot_amode ),       &
+        CALL wrf_debug(15,'wetscav_driver calling wetscav_mozcart')
+        call wetscav_mozcart( id, ktau, dtstep, ktauc, config_flags,             &
+                              dtstepc, t_phy, p8w, t8w, p_phy,                   &
+-                             chem, rho_phy, cldfra2, rainrate, evaprate,        &
++                             chem, rho_phy, cldfra_ls, rainrate, evaprate,        &
+                              qv_b4mp, qc_b4mp, qi_b4mp, qs_b4mp,                &
+                              gas_aqfrac, numgas_aqfrac, dz8w, dx, dy,           &
+                              moist(ims,kms,jms,p_qv), moist(ims,kms,jms,p_qc),  &
+diff --git a/dyn_em/module_first_rk_step_part1.F b/dyn_em/module_first_rk_step_part1.F
+index c9a1fa57..151502db 100644
+--- a/dyn_em/module_first_rk_step_part1.F
++++ b/dyn_em/module_first_rk_step_part1.F
+@@ -397,6 +397,7 @@ BENCH_START(rad_driver_tim)
+      &        , CLDT=grid%cldt, ZNU=grid%znu                              &
+ !ZCX-
+      &        , CLDFRA=grid%cldfra, CLDFRA_MP_ALL=grid%cldfra_mp_all      &
++     &        , CLDFRA_LS=grid%cldfra_ls                                  &
+      &        , CCLDFRA=grid%ccldfra                                      &
+      &        , QCCONV=grid%qcconv, QICONV=grid%qiconv                    &
+      &        , BMJ_RAD_FEEDBACK=config_flags%bmj_rad_feedback            &
+diff --git a/phys/module_mixactivate.F b/phys/module_mixactivate.F
+index 719a3816..a7d856cc 100644
+--- a/phys/module_mixactivate.F
++++ b/phys/module_mixactivate.F
+@@ -257,7 +257,6 @@ subroutine mixactivate(  msectional,            &
+ !     doesn't distinguish between warm, cold clouds
+ 
+   USE module_model_constants, only: g, rhowater, xlv, cp, rvovrd, r_d, r_v, mwdry, ep_2
+-  USE module_radiation_driver, only: cal_cldfra2
+ 
+   implicit none
+ 
+@@ -322,7 +321,6 @@ subroutine mixactivate(  msectional,            &
+ 
+ !--------------------Local storage-------------------------------------
+ !
+-  real :: cldfra_new(ims:ime,kms:kme,jms:jme) ! Recalculated cloud fraction
+   real :: dgnum_aer(maxd_asize, maxd_atype) ! median diameter (cm) of number distrib of mode
+   real :: qndrop(kms:kme)      ! cloud droplet number mixing ratio (#/kg)
+   real :: lcldfra(kms:kme)     ! liquid cloud fraction
+@@ -492,13 +490,6 @@ subroutine mixactivate(  msectional,            &
+      enddo
+   enddo
+ 
+-  IF( PRESENT(F_QC) .AND. PRESENT ( F_QI ) ) THEN
+-     CALL cal_cldfra2(CLDFRA_new,qc,qi,f_qc,f_qi,     &
+-          ids,ide, jds,jde, kds,kde,              &
+-          ims,ime, jms,jme, kms,kme,              &
+-          its,ite, jts,jte, kts,kte               )
+-  END IF
+-
+   qsrflx(its:ite,jts:jte,:) = 0.
+ 
+ !     start loop over columns
+@@ -530,7 +521,7 @@ OVERALL_MAIN_I_LOOP: do i=its,ite
+            call wrf_error_fatal("1")
+         endif
+         if(qcld.gt.1.e-20)then
+-           lcldfra(k)=cldfra_new(i,k,j)*qc(i,k,j)/qcld
++           lcldfra(k)=cldfra(i,k,j)*qc(i,k,j)/qcld
+            lcldfra_old(k)=cldfra_old(i,k,j)*qc(i,k,j)/qcld
+         else
+            lcldfra(k)=0.
+@@ -911,7 +902,7 @@ OLD_CLOUD_MAIN_K_LOOP: do k=kts,kte
+ !              no cloud
+            if(qndrop(k).gt.10000.e6)then
+               print *,'i,k,j,lcldfra,qndrop=',i,k,j,lcldfra(k),qndrop(k)
+-              print *,'cldfra,ql,qi',cldfra_new(i,k,j),qc(i,k,j),qi(i,k,j)
++              print *,'cldfra,ql,qi',cldfra(i,k,j),qc(i,k,j),qi(i,k,j)
+            endif
+            nsource(i,k,j)=nsource(i,k,j)-qndrop(k)*dtinv
+            qndrop(k)=0.
+diff --git a/phys/module_radiation_driver.F b/phys/module_radiation_driver.F
+index 3ba62b9f..9889619a 100644
+--- a/phys/module_radiation_driver.F
++++ b/phys/module_radiation_driver.F
+@@ -99,7 +99,7 @@ CONTAINS
+               , RE_HAIL_GSFC                                              &
+               , COD2D_OUT                                                 &
+               , CTOP2D_OUT                                                &
+-              , CLDFRA,CLDFRA_MP_ALL,CLDT,ZNU                             &
++              , CLDFRA,CLDFRA_MP_ALL,CLDFRA_LS,CLDT,ZNU                             &
+               , CCLDFRA, QCCONV, QICONV                                   &
+               , bmj_rad_feedback                                          &
+ #if (EM_CORE == 1)
+@@ -562,6 +562,7 @@ CONTAINS
+ !-- CLDFRA_DP     cloud fraction from deep cloud in a cumulus scheme
+ !-- CLDFRA_SH     cloud fraction from shallow cloud in a cumulus scheme
+ !-- CLDFRA_MP_ALL cloud fraction from CAMMGMP microphysics scheme
++!-- CLDFRA_LS     cloud fraction from large scale microphysics scheme
+ !-- CCLDFRA       convective cloud fraction (between 0 and 1)
+ !-- EMISS         surface emissivity (between 0 and 1)
+ !-- rho_phy       density (kg/m^3)
+@@ -1095,6 +1096,11 @@ CONTAINS
+                                                          F_RAIN_PHY, &
+                                                       CLDFRA_MP_ALL
+ 
++   REAL, DIMENSION( ims:ime, kms:kme, jms:jme ),                     &
++         OPTIONAL,                                                   &
++         INTENT(INOUT) ::                                            &
++                                                          CLDFRA_LS
++
+ #if (EM_CORE == 1)
+    REAL, DIMENSION( ims:ime, kms:kme, jms:jme ),                     &
+          OPTIONAL,                                                   &
+@@ -1584,6 +1590,7 @@ CONTAINS
+      DO k=kts,kte
+      DO i=its,ite
+         CLDFRA(i,k,j) = 0.
++        IF(PRESENT(CLDFRA_LS)) CLDFRA_LS(i,k,j) = 0.
+      END DO
+      END DO
+      END DO
+@@ -1603,6 +1610,15 @@ CONTAINS
+                    ids,ide, jds,jde, kds,kde,              &
+                    ims,ime, jms,jme, kms,kme,              &
+                    its,ite, jts,jte, kts,kte               )
++        IF(PRESENT(CLDFRA_LS)) THEN
++          CALL cal_cldfra1(CLDFRA_LS,qv,qc_save,qi_save,qs_save,  &
++                     F_QV,F_QC,F_QI,F_QS,t,p,                &
++                     F_ICE_PHY,F_RAIN_PHY,                   &
++                     mp_physics,cldfra1_flag,                &
++                     ids,ide, jds,jde, kds,kde,              &
++                     ims,ime, jms,jme, kms,kme,              &
++                     its,ite, jts,jte, kts,kte               )
++        ENDIF
+         IF ( PRESENT ( CLDFRA_DP ) ) THEN
+ ! this is for Kain-Fritsch schemes
+           IF ( icloud_cu .EQ. 2 .OR. aercu_opt .GT. 0 ) THEN
+@@ -1726,6 +1742,12 @@ CONTAINS
+                        ids,ide, jds,jde, kds,kde,            &
+                        ims,ime, jms,jme, kms,kme,            &
+                        its,ite, jts,jte, kts,kte             )
++       IF(PRESENT(CLDFRA_LS)) THEN
++         CALL cal_cldfra2(CLDFRA_LS,qc_save,qi_save,F_QC,F_QI, &
++                         ids,ide, jds,jde, kds,kde,            &
++                         ims,ime, jms,jme, kms,kme,            &
++                         its,ite, jts,jte, kts,kte             )
++       END IF
+      ENDIF
+ 
+ !+---+-----------------------------------------------------------------+
+@@ -1768,6 +1790,9 @@ CONTAINS
+                 qi(i,k,j) = qi_1d(k)
+                 qs(i,k,j) = qs_1d(k)
+                 cldfra(i,k,j) = cf_1d(k)
++                IF(PRESENT(CLDFRA_LS)) THEN
++                  cldfra_ls(i,k,j) = cf_1d(k)
++                END IF
+              ENDDO
+ 
+            ENDDO
+@@ -1784,6 +1809,13 @@ CONTAINS
+                             ids,ide, jds,jde, kds,kde,                               &
+                             ims,ime, jms,jme, kms,kme,                               &
+                             its,ite, jts,jte, kts,kte)
++           IF(PRESENT(CLDFRA_LS)) THEN
++             CALL cal_cldfra4(cldfra_ls, qv, qc_save, qi_save,             &
++                              qc_cu, qi_cu, p, t, rho, icloud_cu,          &
++                              ids,ide, jds,jde, kds,kde,                   &
++                              ims,ime, jms,jme, kms,kme,                   &
++                              its,ite, jts,jte, kts,kte)
++           END IF
+         ELSE
+            CALL wrf_error_fatal('Can not use icloud = 4 option, missing QC or QI field.')
+         ENDIF
+-- 
+2.31.1
+

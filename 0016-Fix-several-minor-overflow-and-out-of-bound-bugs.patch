@@ -1,0 +1,68 @@
+From a0c1f8a24aff541383c18f2b682dcb2617b1b69d Mon Sep 17 00:00:00 2001
+From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
+Date: Mon, 7 Feb 2022 15:17:58 +0100
+Subject: [PATCH 16/54] Fix several minor overflow and out-of-bound bugs
+
+Fix several overflow and out-of bound bugs that do not usually trigger
+but cause issues when strict debug options are used at compilation.
+---
+ chem/module_bioemi_megan2.F     | 2 ++
+ chem/module_lightning_nox_ott.F | 6 ++++--
+ phys/module_sf_noahlsm.F        | 6 ++++++
+ 3 files changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/chem/module_bioemi_megan2.F b/chem/module_bioemi_megan2.F
+index a078447b..fe183d6c 100644
+--- a/chem/module_bioemi_megan2.F
++++ b/chem/module_bioemi_megan2.F
+@@ -1896,6 +1896,8 @@ is_mozm_species : &
+ 
+       ! Eqn (5) of Guenther et al. [2006]
+       X = ( (1.0/Topt)-(1.0/TEMP) ) / 0.00831
++      !LMarelle - prevent overflow - CT2*X should be < 80.
++      X = MIN(X, 0.4)
+       AAA = Eopt*CT2*EXP(CT1*X)
+       BBB = (  CT2-CT1*( 1.0-EXP(CT2*X) )  )
+       gam_T = AAA/BBB
+diff --git a/chem/module_lightning_nox_ott.F b/chem/module_lightning_nox_ott.F
+index 0d4dd0f0..0ab7545e 100644
+--- a/chem/module_lightning_nox_ott.F
++++ b/chem/module_lightning_nox_ott.F
+@@ -136,7 +136,9 @@
+        lnox_total_tend(i,k,j) = NOperkm(v)/mass_of_air * 1E6  ! ppmv (/s)
+ 
+        k = k + 1
+-       IF ( int(zkm(k)) .gt. v ) v = int( zkm(k) )
++       IF ( k .le. kte) THEN
++         IF ( int(zkm(k)) .gt. v ) v = int( zkm(k) )
++       ENDIF
+      ENDDO
+    ENDDO
+  ENDDO
+@@ -144,4 +146,4 @@
+  END SUBROUTINE lightning_nox_ott
+ 
+ 
+- END MODULE module_lightning_nox_ott
+\ No newline at end of file
++ END MODULE module_lightning_nox_ott
+diff --git a/phys/module_sf_noahlsm.F b/phys/module_sf_noahlsm.F
+index 055198db..c478d107 100644
+--- a/phys/module_sf_noahlsm.F
++++ b/phys/module_sf_noahlsm.F
+@@ -4504,6 +4504,12 @@ IF ( OPT_THCND == 1 .OR. ( OPT_THCND == 2 .AND. (SOILTYP /= 4 .AND. SOILTYP /= 3
+ ! VERSION D_10CM: ........  FACTR1 = 0.2/SMCMAX
+ ! WEIGHTED APPROACH...................... PABLO GRUNMANN, 28_SEP_1999.
+ ! ----------------------------------------------------------------------
++      !LMarelle - prevent FACTR2 to be below 0 - TODO understand why this
++      !sometimes happen
++      IF(FACTR2 .LT. 0.0) THEN
++        write(*,*) 'WDFCND Error: FACTR2<0.0 - DWSAT,FACTR2,EXPON',DWSAT,FACTR2,EXPON
++        FACTR2 = MAX(FACTR2, 0.0)
++      ENDIF
+       WDF = DWSAT * FACTR2 ** EXPON
+       IF (SICEMAX .gt. 0.0) THEN
+          VKWGT = 1./ (1. + (500.* SICEMAX)**3.)
+-- 
+2.31.1
+
