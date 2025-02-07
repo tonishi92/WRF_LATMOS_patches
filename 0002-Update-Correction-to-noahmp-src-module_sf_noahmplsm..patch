@@ -1,7 +1,7 @@
-From 43f1f3a7bab055b23e685b803a43085d4bb5a1ce Mon Sep 17 00:00:00 2001
+From aea57b724a20ab788bc9c755dc080c3346bc983c Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 27 Aug 2024 14:08:48 +0200
-Subject: [PATCH 02/54] (Update) Correction to
+Subject: [PATCH 02/55] (Update) Correction to
  /noahmp/src/module_sf_noahmplsm.F
 
 Add the following two lines before subroutine SFCDIF2 for OPT_SFC == 2 case.
@@ -17,8 +17,8 @@ To work around this problem, we modify Makefile so that
 "git am -3 <patch>" command be applied in Makefile in /phys.
 ---
  ...hys-noahmp-src-module_sf_noahmplsm.F.patch | 44 +++++++++++++++++++
- phys/Makefile                                 |  2 +
- 2 files changed, 46 insertions(+)
+ phys/Makefile                                 |  1 +
+ 2 files changed, 45 insertions(+)
  create mode 100644 phys/CORRECTION-phys-noahmp-src-module_sf_noahmplsm.F.patch
 
 diff --git a/phys/CORRECTION-phys-noahmp-src-module_sf_noahmplsm.F.patch b/phys/CORRECTION-phys-noahmp-src-module_sf_noahmplsm.F.patch
@@ -72,7 +72,7 @@ index 00000000..e9d40161
 +2.31.1
 +
 diff --git a/phys/Makefile b/phys/Makefile
-index a7fb3daf..02ea4e0e 100644
+index a7fb3daf..e26f403e 100644
 --- a/phys/Makefile
 +++ b/phys/Makefile
 @@ -262,6 +262,7 @@ submodules :

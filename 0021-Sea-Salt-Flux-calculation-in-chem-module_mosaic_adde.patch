@@ -1,7 +1,7 @@
-From 7e0f028f6b5687458ca81511e12f61839b573419 Mon Sep 17 00:00:00 2001
+From 8432df654a937bb1762f1fc2985ef3491d7b1f57 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 13:05:34 +0100
-Subject: [PATCH 21/54] Sea Salt Flux calculation in
+Subject: [PATCH 21/55] Sea Salt Flux calculation in
  chem/module_mosaic_addemiss.F
 
 TYPE : Enhancement

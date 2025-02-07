@@ -1,7 +1,7 @@
-From bc75f63818105574830f9fc178c64f881a824954 Mon Sep 17 00:00:00 2001
+From 53299820b9558e4168a09d0dcfa5c5249ee0a78c Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Fri, 19 Oct 2018 11:16:19 +0200
-Subject: [PATCH 12/54] Correct dry deposition for SAPRC99 mechanisms
+Subject: [PATCH 12/55] Correct dry deposition for SAPRC99 mechanisms
 
 Sets dry deposition velocities and deposition parameters for several species
 for which it was missing in SAPRC99 mechanisms. The model was using some

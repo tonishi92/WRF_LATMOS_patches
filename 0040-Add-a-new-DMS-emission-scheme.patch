@@ -1,7 +1,7 @@
-From 947dbd0a3b59ac974bf6f63f3dd2642e9417f8ac Mon Sep 17 00:00:00 2001
+From 6746feadceceeba32dd2c5e815abe9769801fcf1 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 13:34:27 +0100
-Subject: [PATCH 40/54] Add a new DMS emission scheme
+Subject: [PATCH 40/55] Add a new DMS emission scheme
 
 Adds a new module for DMS emissions, module_nightingale_dmsemis. These DMS
 emissions are based on Nightingale et al. (2000) and Saltzman et al.  (1993).

@@ -1,7 +1,7 @@
-From a1ac3c3b2d80c01c8c95ce974c1a2bcb2469c7d0 Mon Sep 17 00:00:00 2001
+From 4311c1811eaccddd25120f48e478103701b05582 Mon Sep 17 00:00:00 2001
 From: Tatsuo ONISHI <onishi@latmos.ipsl.fr>
 Date: Wed, 23 Nov 2022 14:15:36 +0100
-Subject: [PATCH 35/54] (Update) wStar calculation for a negative flux
+Subject: [PATCH 35/55] (Update) wStar calculation for a negative flux
 
 TYPE : Update
 

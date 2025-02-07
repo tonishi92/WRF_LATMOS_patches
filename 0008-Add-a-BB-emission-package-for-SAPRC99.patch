@@ -1,7 +1,7 @@
-From 6409c2e4b55be36580e563d72dc6fc7c1a7d7d4e Mon Sep 17 00:00:00 2001
+From 3555d2f14ca775fb60d372bbadb024257474f2b9 Mon Sep 17 00:00:00 2001
 From: Louis Marelle <louis.marelle@latmos.ipsl.fr>
 Date: Tue, 9 Oct 2018 15:12:00 +0200
-Subject: [PATCH 08/54] Add a BB emission package for SAPRC99
+Subject: [PATCH 08/55] Add a BB emission package for SAPRC99
 
 Adds a biomass burning (BB) emission package for SAPRC99 mechanisms,
 BIOMASSB_SAPRC (biomass_burn_opt = 6 in &chem), and couples it to the

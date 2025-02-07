@@ -1,7 +1,7 @@
-From ae57750035cf67ff69a841c7a290b24fba414fb9 Mon Sep 17 00:00:00 2001
+From 554a4050bc3522b8890660eb1ca2cd35f81703ce Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Tue, 17 Jan 2023 13:20:33 +0100
-Subject: [PATCH 28/54] UV albedo over snow and ice in Fast-J photolysis and
+Subject: [PATCH 28/55] UV albedo over snow and ice in Fast-J photolysis and
  for FTUV+TUV photolysis
 
 TYPE : Updates

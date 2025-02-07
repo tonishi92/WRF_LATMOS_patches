@@ -1,7 +1,7 @@
-From d4eb7ebe5142c882541f81f72c3a2c587dc73549 Mon Sep 17 00:00:00 2001
+From 419a458c829c4fe5c7378bf0b12a0deddad37df2 Mon Sep 17 00:00:00 2001
 From: tonishi92 <tatsuo.onishi@gmail.com>
 Date: Thu, 29 Feb 2024 10:03:34 +0100
-Subject: [PATCH 54/54] "#if ( WRF_CHEM == 1)" added for the WRF-only
+Subject: [PATCH 54/55] "#if ( WRF_CHEM == 1)" added for the WRF-only
  compilation (WRF_CHEM = 0) because "radeffectdt" and "radeffect_option" are
  listed Registry/registry.chem
 
